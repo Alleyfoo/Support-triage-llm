@@ -53,6 +53,11 @@ Milestone D — Support ops features (later)
 - KB suggestion pipeline
 - Metrics dashboard (CSAT proxy: reopen rate, time-to-first-signal)
 
+Milestone E — Learning loop (gated)
+- Metrics-only mode (safe): compute contradiction rate, redundant questions, claim warnings, routing accuracy from existing artifacts.
+- Dataset mode (requires approval): redacted triage/report/evidence summaries with retention/access controls. Default OFF.
+- See `docs/MILESTONE_E_LEARNING_LOOP.md` for policy gates and rollout.
+
 ## 12) Developer workflow (simple rules)
 - Keep the rails stable: queue/worker contract should not break.
 - Add new tools via tools/registry.py + schema + tests.
