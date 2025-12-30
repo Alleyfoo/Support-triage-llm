@@ -155,3 +155,44 @@ with col3:
 
 with st.expander("Raw record"):
     st.json(row)
+
+st.subheader("Evidence and Report")
+tab1, tab2 = st.tabs(["Evidence", "Final report"])
+with tab1:
+    evidence = row.get("evidence_json") or []
+    if isinstance(evidence, str):
+        evidence = _json_load(evidence) or []
+    if not evidence:
+        st.write("No evidence bundles recorded.")
+    else:
+        for bundle in evidence:
+            st.markdown(f"**Source:** {bundle.get('source','unknown')} tenant={bundle.get('tenant')}")
+            st.code(_pretty_json(bundle), language="json")
+with tab2:
+    report = row.get("final_report_json") or {}
+    if isinstance(report, str):
+        report = _json_load(report)
+    if not report:
+        st.write("No final report generated.")
+    else:
+        st.markdown(f"**Classification:** {report.get('classification', {})}")
+        st.markdown("**Timeline summary**")
+        st.code(report.get("timeline_summary", ""), language="text")
+        st.markdown("**Customer update**")
+        st.code(_pretty_json(report.get("customer_update", {})), language="json")
+        st.markdown("**Engineering escalation**")
+        st.code(_pretty_json(report.get("engineering_escalation", {})), language="json")
+        st.markdown("**KB suggestions**")
+        st.code(_pretty_json(report.get("kb_suggestions", [])), language="json")
+
+if st.button("Export report package", use_container_width=True):
+    export = {
+        "row": row,
+        "triage": triage_json,
+        "evidence": row.get("evidence_json"),
+        "report": row.get("final_report_json"),
+    }
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    path = EXPORT_DIR / f"case_{row_id}_package_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    path.write_text(_pretty_json(export), encoding="utf-8")
+    st.success(f"Exported to {path}")

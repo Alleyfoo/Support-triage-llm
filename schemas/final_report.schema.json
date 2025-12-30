@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FinalReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["classification", "timeline_summary", "customer_update", "engineering_escalation", "kb_suggestions"],
+  "properties": {
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_stage", "confidence", "top_reasons"],
+      "properties": {
+        "failure_stage": { "type": "string", "enum": ["trigger", "queue", "provider", "recipient", "configuration", "unknown"] },
+        "confidence": { "type": "number", "minimum": 0.0 },
+        "top_reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "timeline_summary": { "type": "string" },
+    "customer_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "body", "requested_info"],
+      "properties": {
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "requested_info": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "engineering_escalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "evidence_refs", "severity", "repro_steps"],
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } },
+        "severity": { "type": "string", "enum": ["S1", "S2", "S3"] },
+        "repro_steps": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "kb_suggestions": { "type": "array", "items": { "type": "string" } }
+  }
+}

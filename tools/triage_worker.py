@@ -14,6 +14,8 @@ from uuid import uuid4
 from app import queue_db
 from app.triage_service import triage
 from app.validation import SchemaValidationError
+from app import report_service
+from tools import registry
 
 
 def _now_iso() -> str:
@@ -49,6 +51,27 @@ def process_once(processor_id: str) -> bool:
         triage_result = triage(text, metadata=metadata)
         elapsed = time.perf_counter() - start
         meta = triage_result.pop("_meta", {})
+
+        evidence_bundles = []
+        evidence_sources_run = []
+        try:
+            bundle = registry.run_tool(
+                "fetch_email_events_sample",
+                {
+                    "tenant": metadata.get("tenant"),
+                    "recipient_domain": (triage_result.get("scope", {}).get("recipient_domains") or [None])[0],
+                    "start": None,
+                    "end": None,
+                },
+            )
+            evidence_bundles.append(bundle)
+            evidence_sources_run.append("fetch_email_events_sample")
+        except Exception as exc:
+            evidence_bundles = []
+            evidence_sources_run.append(f"error:{exc}")
+
+        final_report = report_service.generate_report(triage_result, evidence_bundles)
+        report_meta = final_report.pop("_meta", {})
         queue_db.update_row_status(
             row["id"],
             status="triaged",
@@ -69,7 +92,11 @@ def process_once(processor_id: str) -> bool:
             llm_latency_ms=meta.get("llm_latency_ms"),
             llm_attempts=meta.get("llm_attempts"),
             schema_valid=1 if meta.get("schema_valid") else 0,
-            response_metadata={"triage_meta": meta},
+            evidence_json=evidence_bundles,
+            evidence_sources_run=evidence_sources_run,
+            evidence_created_at=_now_iso(),
+            final_report_json=final_report,
+            response_metadata={"triage_meta": meta, "report_meta": report_meta},
         )
         print(f"Processed triage for row {row['id']} status=triaged latency={elapsed:.3f}s")
     except SchemaValidationError as exc:

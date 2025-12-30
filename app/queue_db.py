@@ -90,6 +90,10 @@ ALLOWED_UPDATE_FIELDS = {
     "llm_latency_ms",
     "llm_attempts",
     "schema_valid",
+    "evidence_json",
+    "evidence_sources_run",
+    "evidence_created_at",
+    "final_report_json",
     "ingest_signature",
     "created_at",
 }
@@ -136,6 +140,10 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "llm_latency_ms": "INTEGER",
         "llm_attempts": "INTEGER",
         "schema_valid": "INTEGER",
+        "evidence_json": "TEXT",
+        "evidence_sources_run": "TEXT",
+        "evidence_created_at": "TEXT",
+        "final_report_json": "TEXT",
     }
     for name, col_type in desired.items():
         if name not in existing:
@@ -353,7 +361,17 @@ def fetch_queue(limit: int = 100) -> List[Dict[str, Any]]:
 
 def _maybe_json_dump(key: str, value: Any) -> Any:
     """Serialize JSON-friendly fields to strings to align with the Excel format."""
-    if key in {"matched", "missing", "response_payload", "response_metadata", "triage_json", "missing_info_questions"}:
+    if key in {
+        "matched",
+        "missing",
+        "response_payload",
+        "response_metadata",
+        "triage_json",
+        "missing_info_questions",
+        "evidence_json",
+        "evidence_sources_run",
+        "final_report_json",
+    }:
         if value in (None, "", [], {}):
             return ""
         try:

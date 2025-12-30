@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceBundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "time_window", "tenant", "summary_counts", "events"],
+  "properties": {
+    "source": {
+      "type": "string",
+      "enum": ["email_events", "app_events", "integration_events", "dns_checks"]
+    },
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }
+      }
+    },
+    "tenant": { "type": ["string", "null"] },
+    "summary_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sent", "bounced", "deferred", "delivered"],
+      "properties": {
+        "sent": { "type": "integer", "minimum": 0 },
+        "bounced": { "type": "integer", "minimum": 0 },
+        "deferred": { "type": "integer", "minimum": 0 },
+        "delivered": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ts", "type", "id", "message_id", "detail"],
+        "properties": {
+          "ts": { "type": "string", "format": "date-time" },
+          "type": { "type": "string" },
+          "id": { "type": "string" },
+          "message_id": { "type": ["string", "null"] },
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}
