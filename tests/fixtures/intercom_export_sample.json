@@ -1,0 +1,13 @@
+{
+  "conversations": [
+    {
+      "id": "conv-001",
+      "user": {"email": "alice@example.com"},
+      "body": "Emails bouncing to contoso.com since yesterday.",
+      "parts": [
+        {"body": "First report at 10:00 UTC"},
+        {"body": "Still failing today"}
+      ]
+    }
+  ]
+}

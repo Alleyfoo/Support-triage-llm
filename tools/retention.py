@@ -52,12 +52,17 @@ def main() -> None:
     args = parser.parse_args()
 
     db_path = Path(args.db)
-    if args.purge_days:
-        deleted = purge(db_path, args.purge_days)
-        print(f"Deleted {deleted} rows older than {args.purge_days} days")
-    if args.scrub_days:
-        updated = scrub_raw(db_path, args.scrub_days)
-        print(f"Scrubbed {updated} rows older than {args.scrub_days} days")
+    purge_days = args.purge_days if args.purge_days is not None else config.RETENTION_PURGE_DAYS
+    scrub_days = args.scrub_days if args.scrub_days is not None else config.RETENTION_SCRUB_DAYS
+
+    if purge_days:
+        deleted = purge(db_path, purge_days)
+        print(f"Deleted {deleted} rows older than {purge_days} days")
+    if scrub_days:
+        updated = scrub_raw(db_path, scrub_days)
+        print(f"Scrubbed {updated} rows older than {scrub_days} days")
+    if not purge_days and not scrub_days:
+        print("No retention action requested (set --purge-days/--scrub-days or RETENTION_* envs).")
 
 
 if __name__ == "__main__":
