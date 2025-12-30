@@ -9,7 +9,8 @@ from fastapi.security import APIKeyHeader
 
 from . import config, queue_db
 from .pipeline import run_pipeline
-from .schemas import ChatEnqueueRequest, EmailRequest, EmailResponse
+from .schemas import ChatEnqueueRequest, EmailRequest, EmailResponse, TriageRequest
+from .triage_service import triage
 from tools import chat_ingest
 
 app = FastAPI()
@@ -94,3 +95,27 @@ def enqueue_chat(payload: ChatEnqueueRequest) -> Dict[str, int]:
 
     count = chat_ingest.ingest_messages(CHAT_QUEUE_PATH, [message])
     return {"enqueued": count}
+
+
+@app.post("/triage/run")
+def triage_run(req: TriageRequest) -> Dict[str, object]:
+    result = triage(
+        req.text,
+        metadata={"tenant": req.tenant, "source": req.source, "received_at": req.received_at},
+    )
+    return result
+
+
+@app.post("/triage/enqueue", dependencies=[Depends(_get_api_key)])
+def triage_enqueue(req: TriageRequest) -> Dict[str, int]:
+    message = {
+        "conversation_id": req.source or "triage",
+        "text": req.text,
+        "end_user_handle": req.tenant or "",
+        "channel": "triage",
+        "message_id": "",
+        "raw_payload": "",
+        "ingest_signature": "triage-api",
+    }
+    queue_id = queue_db.insert_message(message)
+    return {"enqueued": 1, "queue_id": queue_id}

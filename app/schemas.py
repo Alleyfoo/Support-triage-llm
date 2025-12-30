@@ -23,6 +23,13 @@ class EmailResponse(BaseModel):
     evaluation: EvaluationResult
 
 
+class TriageRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=10000)
+    tenant: Optional[str] = Field(None, max_length=256)
+    received_at: Optional[str] = Field(None, max_length=64)
+    source: Optional[str] = Field(None, max_length=64)
+
+
 class ChatEnqueueRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4000, alias="text")
     conversation_id: Optional[str] = Field(None, max_length=120)

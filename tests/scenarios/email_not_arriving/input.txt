@@ -1,0 +1,1 @@
+Emails to contoso.com are bouncing since this morning. Ops@contoso.com and invoices@contoso.com both failed with 550 5.1.1.

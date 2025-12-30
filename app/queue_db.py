@@ -33,6 +33,13 @@ CREATE TABLE IF NOT EXISTS queue (
     quality_score REAL,
     matched TEXT,
     missing TEXT,
+    triage_json TEXT,
+    draft_customer_reply_subject TEXT,
+    draft_customer_reply_body TEXT,
+    missing_info_questions TEXT,
+    llm_model TEXT,
+    prompt_version TEXT,
+    redaction_applied INTEGER,
     ingest_signature TEXT,
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
@@ -71,6 +78,13 @@ ALLOWED_UPDATE_FIELDS = {
     "quality_score",
     "matched",
     "missing",
+    "triage_json",
+    "draft_customer_reply_subject",
+    "draft_customer_reply_body",
+    "missing_info_questions",
+    "llm_model",
+    "prompt_version",
+    "redaction_applied",
     "ingest_signature",
     "created_at",
 }
@@ -94,9 +108,29 @@ def init_db() -> None:
     conn = get_connection()
     try:
         conn.executescript(SCHEMA)
+        _ensure_columns(conn)
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    """Add new columns introduced after initial table creation."""
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(queue)")
+    existing = {row["name"] for row in cursor.fetchall()}
+    desired = {
+        "triage_json": "TEXT",
+        "draft_customer_reply_subject": "TEXT",
+        "draft_customer_reply_body": "TEXT",
+        "missing_info_questions": "TEXT",
+        "llm_model": "TEXT",
+        "prompt_version": "TEXT",
+        "redaction_applied": "INTEGER",
+    }
+    for name, col_type in desired.items():
+        if name not in existing:
+            cursor.execute(f"ALTER TABLE queue ADD COLUMN {name} {col_type}")
 
 
 def insert_message(payload: Dict[str, Any]) -> int:
@@ -288,9 +322,29 @@ def bulk_append_history(messages: List[Dict[str, str]]) -> None:
         conn.close()
 
 
+def fetch_queue(limit: int = 100) -> List[Dict[str, Any]]:
+    """Return recent queue rows for UI consumption."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT *
+            FROM queue
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (max(limit, 1),),
+        )
+        rows = cursor.fetchall()
+        return [_row_to_dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def _maybe_json_dump(key: str, value: Any) -> Any:
     """Serialize JSON-friendly fields to strings to align with the Excel format."""
-    if key in {"matched", "missing", "response_payload", "response_metadata"}:
+    if key in {"matched", "missing", "response_payload", "response_metadata", "triage_json", "missing_info_questions"}:
         if value in (None, "", [], {}):
             return ""
         try:

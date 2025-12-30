@@ -1,152 +1,121 @@
 import json
 from pathlib import Path
+from typing import Any, Dict
 
 import pandas as pd
 import streamlit as st
 
-from app.chat_service import ChatService
-from tools import chat_dispatcher, chat_ingest, chat_worker
+from app import queue_db
 
-QUEUE_PATH = Path("data/email_queue.xlsx")
-TRANSCRIPT_PATH = Path("data/chat_web_transcript.jsonl")
-
-
-st.set_page_config(page_title="CS Chatbot LLM", layout="wide")
-st.title("CS Chatbot LLM Playground")
-st.caption(
-    "Queue-driven chatbot demo. Use the controls below to enqueue customer messages, run the worker, "
-    "dispatch replies, and review the transcript."
-)
+st.set_page_config(page_title="Support Triage Copilot", layout="wide")
+st.title("Support Triage Copilot ? Review Console")
+st.caption("Queue ? worker ? triage JSON + draft. Approve or send back for rewrite. No auto-send.")
 
 
-def _ensure_dataframe() -> pd.DataFrame:
-    if QUEUE_PATH.exists():
-        df = pd.read_excel(QUEUE_PATH)
-        return chat_worker.ensure_chat_columns(df)
-    return chat_worker.ensure_chat_columns(pd.DataFrame())
+def _load_cases(limit: int = 100) -> pd.DataFrame:
+    rows = queue_db.fetch_queue(limit=limit)
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    for col in ("triage_json", "missing_info_questions"):
+        if col in df.columns:
+            df[col] = df[col].apply(_json_load)
+    return df
 
 
-def _load_transcript() -> list[dict]:
-    if not TRANSCRIPT_PATH.exists():
-        return []
-    entries: list[dict] = []
-    for line in TRANSCRIPT_PATH.read_text(encoding="utf-8").splitlines():
-        text = line.strip()
-        if not text:
-            continue
+def _json_load(value: Any) -> Any:
+    if isinstance(value, str) and value.strip():
         try:
-            entries.append(json.loads(text))
+            return json.loads(value)
         except json.JSONDecodeError:
-            continue
-    return entries
+            return value
+    return value
 
 
-def _render_transcript(entries: list[dict]) -> None:
-    if not entries:
-        st.info(
-            "Transcript is empty. Enqueue a message, run the worker, then dispatch to record a reply."
-        )
-        return
-    for entry in entries[-20:]:
-        payload = entry.get("response", {})
-        content = payload.get("content") or "[empty response]"
-        st.markdown(
-            f"**Bot » {entry.get('conversation_id', 'unknown')}** — {content}"
-        )
+def _pretty_json(payload: Dict[str, Any]) -> str:
+    try:
+        return json.dumps(payload, indent=2, ensure_ascii=False)
+    except Exception:
+        return str(payload)
 
+
+def _update_status(row_id: int, status: str, subject: str | None = None, body: str | None = None) -> None:
+    queue_db.update_row_status(
+        row_id,
+        status=status,
+        draft_customer_reply_subject=subject or "",
+        draft_customer_reply_body=body or "",
+        finished_at=None,
+    )
+
+
+cases_df = _load_cases()
 
 with st.sidebar:
-    st.subheader("Demo Workflow")
-    st.markdown(
-        "1. Add a customer message via the form.\n"
-        "2. Run the worker to generate a response.\n"
-        "3. Run the dispatcher to log the reply to the transcript.\n"
-        "4. Reload the transcript to preview the conversation."
-    )
-    st.markdown("Resources:")
-    st.markdown("- `tools/chat_ingest.py` — CLI intake")
-    st.markdown("- `tools/chat_worker.py` — queue worker")
-    st.markdown("- `tools/chat_dispatcher.py` — transcript logger")
+    st.subheader("Queue snapshot")
+    if cases_df.empty:
+        st.write("Queue is empty. Use the API or CLI to enqueue cases.")
+    else:
+        counts = cases_df["status"].value_counts() if "status" in cases_df else {}
+        for status, count in counts.items():
+            st.write(f"{status}: {count}")
+        st.write("Use `python tools/triage_worker.py --watch` to process queued items.")
 
+st.subheader("Cases")
+if cases_df.empty:
+    st.info("No cases available yet.")
+    raise SystemExit
 
-with st.form("enqueue_form", clear_on_submit=True):
-    st.subheader("1. Enqueue a chat message")
-    message = st.text_area("Message", placeholder="Hi! When were you founded?", height=120)
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        conversation_id = st.text_input("Conversation ID", value="demo-web")
-    with col_b:
-        end_user = st.text_input("End-user handle", value="demo-user")
-    with col_c:
-        channel = st.text_input("Channel", value="web_chat")
-    submitted = st.form_submit_button("Add to queue")
-    if submitted:
-        payload = {
-            "conversation_id": conversation_id,
-            "text": message,
-            "end_user_handle": end_user,
-            "channel": channel,
-        }
-        count = chat_ingest.ingest_messages(QUEUE_PATH, [payload])
-        if count:
-            st.success(f"Enqueued {count} message(s) to {QUEUE_PATH}")
-        else:
-            st.warning("No text provided — nothing enqueued.")
+cases_df = cases_df.sort_values(by="created_at", ascending=False)
+options = {f"#{row.id} - {row.status} - {row.get('payload', '')[:40]}": row.id for row in cases_df.itertuples()}
+selected_label = st.selectbox("Select a case", list(options.keys()))
+row_id = options[selected_label]
+row = cases_df[cases_df["id"] == row_id].iloc[0].to_dict()
 
+st.markdown(f"**Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
 
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("2. Process the queue")
-    if st.button("Run chat worker once", use_container_width=True):
-        processed = chat_worker.process_once(
-            QUEUE_PATH,
-            processor_id="streamlit-worker",
-            chat_service=ChatService(),
-        )
-        if processed:
-            st.success("Worker processed a queued message.")
-        else:
-            st.info("No queued messages found.")
+with st.expander("Original text"):
+    st.write(row.get("payload", ""))
 
-with col2:
-    st.subheader("3. Dispatch demo reply")
-    if st.button("Dispatch via web demo", use_container_width=True):
-        TRANSCRIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        dispatched = chat_dispatcher.dispatch_once(
-            QUEUE_PATH,
-            dispatcher_id="streamlit-dispatcher",
-            adapter="web-demo",
-            adapter_target=str(TRANSCRIPT_PATH),
-        )
-        if dispatched:
-            st.success(f"Logged {dispatched} response(s) to {TRANSCRIPT_PATH}")
-        else:
-            st.info("Nothing waiting for dispatch.")
+triage_json = row.get("triage_json") or {}
+if isinstance(triage_json, str):
+    triage_json = _json_load(triage_json)
 
+col_a, col_b = st.columns(2)
+with col_a:
+    st.subheader("Triage JSON")
+    st.code(_pretty_json(triage_json), language="json")
+with col_b:
+    st.subheader("Draft customer reply")
+    default_subject = triage_json.get("draft_customer_reply", {}).get("subject", "") if isinstance(triage_json, dict) else ""
+    default_body = triage_json.get("draft_customer_reply", {}).get("body", "") if isinstance(triage_json, dict) else ""
+    subject = st.text_input("Subject", value=row.get("draft_customer_reply_subject") or default_subject)
+    body = st.text_area("Body", value=row.get("draft_customer_reply_body") or default_body, height=200)
 
-st.subheader("Current queue snapshot")
-queue_df = _ensure_dataframe()
-if queue_df.empty:
-    st.write("Queue is empty.")
+missing_questions = row.get("missing_info_questions") or []
+if isinstance(missing_questions, str):
+    missing_questions = _json_load(missing_questions) or []
+
+st.subheader("Missing info questions")
+if missing_questions:
+    st.markdown("
+".join(f"- {q}" for q in missing_questions))
 else:
-    st.dataframe(
-        queue_df.tail(20)[
-            [
-                "conversation_id",
-                "payload",
-                "status",
-                "processor_id",
-                "delivery_status",
-                "matched",
-                "missing",
-            ]
-        ],
-        use_container_width=True,
-    )
+    st.write("None captured.")
 
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Approve draft", use_container_width=True):
+        _update_status(row_id, "approved", subject, body)
+        st.success("Case marked approved.")
+with col2:
+    if st.button("Needs rewrite", use_container_width=True):
+        _update_status(row_id, "rewrite", subject, body)
+        st.warning("Case flagged for rewrite.")
+with col3:
+    if st.button("Escalate", use_container_width=True):
+        _update_status(row_id, "escalate_pending", subject, body)
+        st.info("Case marked for escalation (manual follow-up required).")
 
-st.subheader("4. Transcript preview")
-if st.button("Load latest transcript", key="load-transcript-sidebar"):
-    st.experimental_rerun()
-transcript_entries = _load_transcript()
-_render_transcript(transcript_entries)
+with st.expander("Raw record"):
+    st.json(row)

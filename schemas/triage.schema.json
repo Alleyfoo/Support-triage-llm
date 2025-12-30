@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Triage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_type",
+    "severity",
+    "time_window",
+    "scope",
+    "symptoms",
+    "examples",
+    "missing_info_questions",
+    "suggested_tools",
+    "draft_customer_reply"
+  ],
+  "properties": {
+    "case_type": {
+      "type": "string",
+      "enum": [
+        "email_delivery",
+        "integration",
+        "ui_bug",
+        "data_import",
+        "access_permissions",
+        "unknown"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"]
+    },
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "confidence"],
+      "properties": {
+        "start": { "type": ["string", "null"], "format": "date-time" },
+        "end": { "type": ["string", "null"], "format": "date-time" },
+        "confidence": { "type": "number", "minimum": 0.0 }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "affected_tenants",
+        "affected_users",
+        "affected_recipients",
+        "recipient_domains",
+        "is_all_users",
+        "notes"
+      ],
+      "properties": {
+        "affected_tenants": { "type": "array", "items": { "type": "string" } },
+        "affected_users": { "type": "array", "items": { "type": "string" } },
+        "affected_recipients": { "type": "array", "items": { "type": "string" } },
+        "recipient_domains": { "type": "array", "items": { "type": "string" } },
+        "is_all_users": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+    "symptoms": { "type": "array", "items": { "type": "string" } },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["recipient", "timestamp", "description"],
+        "properties": {
+          "recipient": { "type": ["string", "null"] },
+          "timestamp": { "type": ["string", "null"], "format": "date-time" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "missing_info_questions": { "type": "array", "items": { "type": "string" } },
+    "suggested_tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool_name", "reason", "params"],
+        "properties": {
+          "tool_name": { "type": "string" },
+          "reason": { "type": "string" },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "draft_customer_reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "body"],
+      "properties": {
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    }
+  }
+}
