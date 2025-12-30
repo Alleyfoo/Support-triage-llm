@@ -176,22 +176,38 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
     os.environ["DB_PATH"] = str(db_path)
     try:
         from app import queue_db  # type: ignore
+        queue_db.init_db()
 
-        inserted = 0
-        for e in emails:
-            payload = {
-                "case_id": e.get("id") or e.get("case_id") or "",
-                "text": e.get("body") or e.get("text") or "",
-                "end_user_handle": e.get("from") or e.get("sender") or e.get("tenant") or "",
-                "channel": e.get("channel") or "email",
-                "message_direction": "inbound",
-                "message_type": "text",
-                "raw_payload": json.dumps(e, ensure_ascii=False),
-                "conversation_id": e.get("thread_id") or e.get("conversation_id") or e.get("case_id") or "",
-                "ingest_signature": "one-run-seed",
-            }
-            queue_db.insert_message(payload)
-            inserted += 1
+        def _attempt_insert() -> int:
+            inserted_inner = 0
+            for e in emails:
+                payload = {
+                    "case_id": e.get("id") or e.get("case_id") or "",
+                    "text": e.get("body") or e.get("text") or "",
+                    "end_user_handle": e.get("from") or e.get("sender") or e.get("tenant") or "",
+                    "channel": e.get("channel") or "email",
+                    "message_direction": "inbound",
+                    "message_type": "text",
+                    "raw_payload": json.dumps(e, ensure_ascii=False),
+                    "conversation_id": e.get("thread_id") or e.get("conversation_id") or e.get("case_id") or "",
+                    "ingest_signature": "one-run-seed",
+                }
+                queue_db.insert_message(payload)
+                inserted_inner += 1
+            return inserted_inner
+
+        try:
+            inserted = _attempt_insert()
+        except Exception as inner_exc:
+            if isinstance(inner_exc, sqlite3.OperationalError) and "no such column" in str(inner_exc).lower():
+                # Recreate demo DB with the canonical schema then retry once.
+                if db_path.exists():
+                    db_path.unlink()
+                queue_db.init_db()
+                inserted = _attempt_insert()
+            else:
+                raise
+
         print(f"[seed] Seeded {inserted} emails into DB: {db_path}")
         return inserted
     except Exception as exc:
@@ -200,22 +216,53 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
     _ensure_parent_dir(db_path)
     conn = sqlite3.connect(str(db_path))
     cur = conn.cursor()
-    cur.execute(
+    cur.executescript(
         """
         CREATE TABLE IF NOT EXISTS queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT,
-            status TEXT,
-            end_user_handle TEXT,
-            subject TEXT,
-            payload TEXT,
             case_id TEXT,
+            message_id TEXT,
+            idempotency_key TEXT,
+            retry_count INTEGER DEFAULT 0,
+            available_at TEXT,
+            conversation_id TEXT,
+            end_user_handle TEXT,
+            channel TEXT DEFAULT 'email',
+            message_direction TEXT DEFAULT 'inbound',
+            message_type TEXT DEFAULT 'text',
+            payload TEXT,
+            raw_payload TEXT,
+            status TEXT DEFAULT 'queued',
+            processor_id TEXT,
+            started_at TEXT,
+            finished_at TEXT,
+            delivery_status TEXT DEFAULT 'pending',
+            delivery_route TEXT,
+            response_payload TEXT,
+            response_metadata TEXT,
+            latency_seconds REAL,
+            quality_score REAL,
+            matched TEXT,
+            missing TEXT,
             triage_json TEXT,
-            evidence_json TEXT,
-            final_report_json TEXT,
             draft_customer_reply_subject TEXT,
-            draft_customer_reply_body TEXT
-        )
+            draft_customer_reply_body TEXT,
+            missing_info_questions TEXT,
+            llm_model TEXT,
+            prompt_version TEXT,
+            redaction_applied INTEGER,
+            triage_mode TEXT,
+            llm_latency_ms INTEGER,
+            llm_attempts INTEGER,
+            schema_valid INTEGER,
+            redacted_payload TEXT,
+            evidence_json TEXT,
+            evidence_sources_run TEXT,
+            evidence_created_at TEXT,
+            final_report_json TEXT,
+            ingest_signature TEXT,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        );
         """
     )
     conn.commit()
