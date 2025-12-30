@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 from uuid import uuid4
+import hashlib
 
 from app import queue_db
 from app.triage_service import triage
@@ -74,7 +75,15 @@ def process_once(processor_id: str) -> bool:
     metadata = {
         "tenant": row.get("end_user_handle") or row.get("customer") or "",
         "ingest_signature": row.get("ingest_signature") or "",
+        "case_id": row.get("case_id"),
     }
+
+    idem = row.get("idempotency_key")
+    if not idem:
+        raw_bucket = row.get("created_at", "")[:10]
+        key_input = f"{metadata.get('tenant','')}-{text[:200]}-{raw_bucket}"
+        idem = hashlib.sha256(key_input.encode("utf-8")).hexdigest()
+        queue_db.update_row_status(row["id"], status=row.get("status", "processing"), idempotency_key=idem)
 
     start = time.perf_counter()
     try:

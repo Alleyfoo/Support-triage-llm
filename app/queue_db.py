@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id TEXT,
     message_id TEXT UNIQUE,
+    idempotency_key TEXT,
+    retry_count INTEGER DEFAULT 0,
     conversation_id TEXT,
     end_user_handle TEXT,
     channel TEXT DEFAULT 'web_chat',
@@ -62,6 +64,8 @@ CREATE INDEX IF NOT EXISTS idx_history_conversation ON conversation_history(conv
 ALLOWED_UPDATE_FIELDS = {
     "case_id",
     "message_id",
+    "idempotency_key",
+    "retry_count",
     "conversation_id",
     "end_user_handle",
     "channel",
@@ -133,6 +137,8 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     existing = {row["name"] for row in cursor.fetchall()}
     desired = {
         "case_id": "TEXT",
+        "idempotency_key": "TEXT",
+        "retry_count": "INTEGER",
         "triage_json": "TEXT",
         "draft_customer_reply_subject": "TEXT",
         "draft_customer_reply_body": "TEXT",
@@ -169,6 +175,7 @@ def insert_message(payload: Dict[str, Any]) -> int:
             INSERT INTO queue (
                 case_id,
                 message_id,
+                idempotency_key,
                 conversation_id,
                 end_user_handle,
                 channel,
@@ -182,11 +189,12 @@ def insert_message(payload: Dict[str, Any]) -> int:
                 delivery_status,
                 ingest_signature,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 case_id,
                 message_id,
+                payload.get("idempotency_key") or "",
                 payload.get("conversation_id") or "",
                 payload.get("end_user_handle") or "",
                 payload.get("channel") or "web_chat",

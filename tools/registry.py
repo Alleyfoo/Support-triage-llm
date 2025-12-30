@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 import jsonschema
@@ -129,6 +130,41 @@ def _integration_events_sample(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _email_provider_events_file(params: Dict[str, Any]) -> Dict[str, Any]:
+    path = Path(params.get("file_path"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    events = payload.get("events", [])
+    summary = payload.get("summary_counts", {"sent": 0, "bounced": 0, "deferred": 0, "delivered": 0})
+    return {
+        "source": "email_events",
+        "time_window": payload.get("time_window") or {"start": events[0]["ts"], "end": events[-1]["ts"]} if events else {"start": "", "end": ""},
+        "tenant": payload.get("tenant"),
+        "summary_counts": summary,
+        "events": events,
+    }
+
+
+def _app_log_events_file(params: Dict[str, Any]) -> Dict[str, Any]:
+    path = Path(params.get("file_path"))
+    tenant = params.get("tenant") or "sample-tenant"
+    events = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parts = line.split(" ", 2)
+        if len(parts) < 3:
+            continue
+        ts, evt_type, detail = parts
+        events.append({"ts": ts, "type": evt_type, "id": f"log-{len(events)+1}", "message_id": None, "detail": detail})
+    start = events[0]["ts"] if events else ""
+    end = events[-1]["ts"] if events else ""
+    return {
+        "source": "app_events",
+        "time_window": {"start": start, "end": end},
+        "tenant": tenant,
+        "summary_counts": {"sent": 0, "bounced": 0, "deferred": 0, "delivered": 0},
+        "events": events,
+    }
+
+
 _DNS_PARAMS_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -176,6 +212,13 @@ _INTEGRATION_EVENTS_PARAMS_SCHEMA: Dict[str, Any] = {
     },
 }
 
+_FILE_PARAMS_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {"file_path": {"type": "string"}, "tenant": {"type": ["string", "null"]}},
+    "required": ["file_path"],
+}
+
 
 def _build_registry() -> Dict[str, Tool]:
     evidence_schema = _load_evidence_schema()
@@ -209,6 +252,18 @@ def _build_registry() -> Dict[str, Tool]:
             params_schema=_INTEGRATION_EVENTS_PARAMS_SCHEMA,
             result_schema=evidence_schema,
             fn=_integration_events_sample,
+        ),
+        "fetch_email_provider_events_file": Tool(
+            name="fetch_email_provider_events_file",
+            params_schema=_FILE_PARAMS_SCHEMA,
+            result_schema=evidence_schema,
+            fn=_email_provider_events_file,
+        ),
+        "fetch_app_log_events_file": Tool(
+            name="fetch_app_log_events_file",
+            params_schema=_FILE_PARAMS_SCHEMA,
+            result_schema=evidence_schema,
+            fn=_app_log_events_file,
         ),
     }
 
