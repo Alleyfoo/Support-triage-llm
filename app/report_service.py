@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Dict, List
 
 from . import config
 from .validation import SchemaValidationError, validate_payload
+from .triage_service import _extract_json_block, _call_ollama  # reuse helper
 
 
 PROMPT_VERSION_REPORT = "report-v1"
@@ -80,33 +82,9 @@ def _engineering_escalation(classification: Dict[str, Any], bundles: List[Dict[s
 
 
 def generate_report(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
-    classification = _classify(evidence_bundles)
-    report = {
-        "classification": classification,
-        "timeline_summary": _timeline(evidence_bundles),
-        "customer_update": _customer_update(classification, evidence_bundles),
-        "engineering_escalation": _engineering_escalation(classification, evidence_bundles),
-        "kb_suggestions": ["Email delivery troubleshooting", "Recipient validation checklist"],
-    }
-    warnings: List[str] = []
-    try:
-        validate_payload(report, "final_report.schema.json")
-    except SchemaValidationError as exc:
-        report.setdefault("classification", classification)
-        report.setdefault("customer_update", _customer_update(classification, evidence_bundles))
-        report.setdefault("engineering_escalation", _engineering_escalation(classification, evidence_bundles))
-        report.setdefault("kb_suggestions", ["Email delivery troubleshooting"])
-        validate_payload(report, "final_report.schema.json")
-        warnings.append(f"Schema repaired: {exc}")
-
-    warnings.extend(_claim_checker(report, evidence_bundles))
-
-    report["_meta"] = {
-        "prompt_version": PROMPT_VERSION_REPORT,
-        "report_mode": config.TRIAGE_MODE,
-        "claim_warnings": warnings,
-    }
-    return report
+    if config.REPORT_MODE == "llm":
+        return _generate_report_llm(triage_json, evidence_bundles)
+    return _generate_report_template(triage_json, evidence_bundles)
 
 
 def _claim_checker(report: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> List[str]:
@@ -137,3 +115,89 @@ def _count(field: str, bundles: List[Dict[str, Any]]) -> int:
         if field in counts:
             total += counts.get(field, 0) or 0
     return total
+
+
+def _generate_report_template(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    classification = _classify(evidence_bundles)
+    report = {
+        "classification": classification,
+        "timeline_summary": _timeline(evidence_bundles),
+        "customer_update": _customer_update(classification, evidence_bundles),
+        "engineering_escalation": _engineering_escalation(classification, evidence_bundles),
+        "kb_suggestions": ["Email delivery troubleshooting", "Recipient validation checklist"],
+    }
+    warnings: List[str] = []
+    try:
+        validate_payload(report, "final_report.schema.json")
+    except SchemaValidationError as exc:
+        report.setdefault("classification", classification)
+        report.setdefault("customer_update", _customer_update(classification, evidence_bundles))
+        report.setdefault("engineering_escalation", _engineering_escalation(classification, evidence_bundles))
+        report.setdefault("kb_suggestions", ["Email delivery troubleshooting"])
+        validate_payload(report, "final_report.schema.json")
+        warnings.append(f"Schema repaired: {exc}")
+
+    warnings.extend(_claim_checker(report, evidence_bundles))
+
+    report["_meta"] = {
+        "prompt_version": PROMPT_VERSION_REPORT,
+        "report_mode": "template",
+        "claim_warnings": warnings,
+    }
+    return report
+
+
+def _generate_report_llm(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    prompt_base = (
+        "You are a precise support reporting assistant. Using ONLY the evidence bundles below, produce a JSON final report "
+        "matching this schema:\n"
+        f"{json.dumps(validate_payload.__defaults__, ensure_ascii=False) if False else ''}"
+        "\nEvidence:\n"
+        f"{json.dumps(evidence_bundles, ensure_ascii=False)}\n"
+        "Rules:\n"
+        "- Do not invent events. Cite event IDs/timestamps.\n"
+        "- If evidence is missing, state uncertainty and what evidence is needed.\n"
+        "- Never promise ETAs.\n"
+        "- Return ONLY JSON.\n"
+    )
+    last_error = ""
+    warnings: List[str] = []
+    attempts = 0
+    start = time.perf_counter()
+    for attempt in range(2):
+        attempts = attempt + 1
+        prompt = prompt_base
+        if last_error:
+            prompt += f"Previous attempt failed validation: {last_error}. Fix and return ONLY valid JSON."
+        try:
+            raw = _call_ollama(prompt)
+            parsed = _extract_json_block(raw)
+            validate_payload(parsed, "final_report.schema.json")
+            warnings.extend(_claim_checker(parsed, evidence_bundles))
+            if warnings:
+                raise SchemaValidationError("; ".join(warnings))
+            meta = parsed.setdefault("_meta", {})
+            meta.update(
+                {
+                    "prompt_version": PROMPT_VERSION_REPORT,
+                    "report_mode": "llm",
+                    "llm_latency_ms": int((time.perf_counter() - start) * 1000),
+                    "llm_attempts": attempts,
+                    "claim_warnings": warnings,
+                }
+            )
+            return parsed
+        except (SchemaValidationError, json.JSONDecodeError) as exc:
+            last_error = str(exc)
+            warnings.append(f"repair_attempt:{exc}")
+            continue
+        except Exception as exc:  # pragma: no cover - network errors
+            last_error = str(exc)
+            break
+
+    # Fallback to template with warnings
+    report = _generate_report_template(triage_json, evidence_bundles)
+    meta = report.setdefault("_meta", {})
+    meta["report_mode"] = "template_fallback"
+    meta["claim_warnings"] = warnings + [f"llm_fallback:{last_error}"]
+    return report

@@ -73,3 +73,4 @@ ACCOUNT_DATA_PATH = os.environ.get(
 DB_PATH = os.environ.get("DB_PATH") or os.environ.get("QUEUE_DB_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "queue.db")
 TRIAGE_MODE = (os.environ.get("TRIAGE_MODE") or "heuristic").lower()
 TOOL_SELECT_MODE = (os.environ.get("TOOL_SELECT_MODE") or "rules").lower()
+REPORT_MODE = (os.environ.get("REPORT_MODE") or "template").lower()
