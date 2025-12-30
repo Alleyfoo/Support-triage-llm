@@ -122,7 +122,7 @@ def process_once(processor_id: str) -> bool:
             response_metadata={"triage_meta": meta, "report_meta": report_meta},
             case_id=meta.get("case_id") or row.get("case_id") or row.get("conversation_id"),
         )
-        print(f"Processed triage for row {row['id']} status=triaged latency={elapsed:.3f}s")
+        print(f"Processed triage for case={meta.get('case_id') or row.get('case_id') or row['id']} status=triaged latency={elapsed:.3f}s")
         metrics.incr("triage_success")
         metrics.timing("triage_latency_s", elapsed)
     except SchemaValidationError as exc:
@@ -136,7 +136,7 @@ def process_once(processor_id: str) -> bool:
             latency_seconds=elapsed,
             response_metadata={"error": str(exc)},
         )
-        print(f"Schema validation failed for row {row['id']}: {exc}")
+        print(f"Schema validation failed for case={row.get('case_id') or row['id']}: {exc}")
         metrics.incr("triage_failed_schema")
     except Exception as exc:  # pragma: no cover - defensive
         elapsed = time.perf_counter() - start
@@ -149,7 +149,7 @@ def process_once(processor_id: str) -> bool:
             latency_seconds=elapsed,
             response_metadata={"error": str(exc)},
         )
-        print(f"Failed triage for row {row['id']}: {exc}")
+        print(f"Failed triage for case={row.get('case_id') or row['id']}: {exc}")
         metrics.incr("triage_failed")
     return True
 

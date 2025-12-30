@@ -220,3 +220,19 @@ if st.button("Export report package", use_container_width=True):
     path = EXPORT_DIR / f"case_{row_id}_package_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
     path.write_text(_pretty_json(export), encoding="utf-8")
     st.success(f"Exported to {path}")
+
+with st.expander("KB suggestions (if generated)"):
+    kb_path = Path("data/kb_suggestions.jsonl")
+    if kb_path.exists():
+        lines = kb_path.read_text(encoding="utf-8").splitlines()
+        if not lines:
+            st.write("No suggestions yet.")
+        else:
+            for line in lines:
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                st.markdown(f"- **{payload.get('title')}** (case {payload.get('case_id')}) refs: {payload.get('evidence_refs','')}")
+    else:
+        st.write("Run `python tools/kb_suggestions.py` to generate suggestions.")
