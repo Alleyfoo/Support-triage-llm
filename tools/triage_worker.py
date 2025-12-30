@@ -8,7 +8,7 @@ import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 from uuid import uuid4
 
 from app import queue_db
@@ -39,6 +39,9 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
     recipient_domains = triage_result.get("scope", {}).get("recipient_domains") or []
     primary_domain = recipient_domains[0] if recipient_domains else None
 
+    if mode != "rules":
+        mode = "rules"
+
     if mode == "rules":
         if case_type == "email_delivery":
             tools.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
@@ -48,9 +51,6 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
             tools.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
         elif case_type == "ui_bug":
             tools.append({"name": "fetch_app_events_sample", "params": {}})
-    else:
-        # fallback to rules for now
-        return _select_tools({**triage_result, "case_type": case_type})
     return tools
 
 
@@ -91,6 +91,7 @@ def process_once(processor_id: str) -> bool:
             status="triaged",
             conversation_id=conversation_id,
             payload=text,
+            redacted_payload=meta.get("redacted_text") or text,
             processor_id=processor_id,
             started_at=started_at,
             finished_at=_now_iso(),

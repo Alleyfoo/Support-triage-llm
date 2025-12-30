@@ -110,7 +110,8 @@ row = cases_df[cases_df["id"] == row_id].iloc[0].to_dict()
 st.markdown(f"**Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
 
 with st.expander("Original text"):
-    st.write(row.get("payload", ""))
+    redacted = row.get("redacted_payload") or row.get("payload", "")
+    st.write(redacted)
 
 triage_json = row.get("triage_json") or {}
 if isinstance(triage_json, str):
