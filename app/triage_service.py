@@ -21,6 +21,28 @@ PROMPT_VERSION_LLM = "triage-llm-v1"
 DOMAIN_PATTERN = re.compile(r"\b([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b")
 EMAIL_PATTERN = re.compile(r"\b[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b")
 SCHEMA_TEXT = (Path(__file__).resolve().parents[1] / "schemas" / "triage.schema.json").read_text(encoding="utf-8")
+ALLOWED_TOP_KEYS = {
+    "case_type",
+    "severity",
+    "time_window",
+    "scope",
+    "symptoms",
+    "examples",
+    "missing_info_questions",
+    "suggested_tools",
+    "draft_customer_reply",
+}
+ALLOWED_TOP_KEYS = {
+    "case_type",
+    "severity",
+    "time_window",
+    "scope",
+    "symptoms",
+    "examples",
+    "missing_info_questions",
+    "suggested_tools",
+    "draft_customer_reply",
+}
 
 
 def _infer_case_type(text: str) -> str:
@@ -192,7 +214,7 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     prompt_base = (
         "Customer message:\n"
         f"{text}\n\n"
-        "Return ONLY a JSON object matching this schema:\n"
+        "Return ONLY a JSON object matching this schema (no $schema/title keys, no prose, no schema echoes):\n"
         f"{SCHEMA_TEXT}\n"
     )
     last_error: str = ""
@@ -206,7 +228,23 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         try:
             raw = _call_ollama(prompt)
             parsed = _extract_json_block(raw)
-            validate_payload(parsed, "triage.schema.json")
+            for key in list(parsed.keys()):
+                if key not in ALLOWED_TOP_KEYS:
+                    parsed.pop(key, None)
+
+            def _fix(payload: Dict[str, Any]) -> Dict[str, Any]:
+                payload.setdefault("examples", [])
+                payload.setdefault("suggested_tools", [])
+                payload.setdefault("missing_info_questions", [])
+                payload.setdefault("symptoms", [])
+                payload.setdefault("time_window", {"start": None, "end": None, "confidence": 0.1})
+                payload.setdefault("scope", {}).setdefault("notes", "")
+                dcr = payload.setdefault("draft_customer_reply", {})
+                dcr["subject"] = dcr.get("subject") or ""
+                dcr["body"] = dcr.get("body") or ""
+                return payload
+
+            parsed = validate_with_retry(parsed, "triage.schema.json", fixer=_fix)
             latency_ms = int((time.perf_counter() - start) * 1000)
             if not parsed.get("time_window") or (
                 parsed["time_window"].get("start") is None and parsed["time_window"].get("end") is None
