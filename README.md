@@ -1,34 +1,48 @@
-# Support Triage Copilot (Milestone A demo)
+# Support Triage Copilot
 
-Quickstart:
-- `cp .env.example .env` (set `INGEST_API_KEY` if you want)
-- `docker compose up --build`
-- Enqueue: `curl -X POST http://localhost:8000/triage/enqueue -H "Content-Type: application/json" -H "X-API-KEY: ${INGEST_API_KEY}" -d '{"text":"Emails are bouncing to contoso.com","tenant":"acme"}'`
-- UI: http://localhost:8501 (approve / rewrite / escalate)
+A local-first, headless triage and drafting bot with closed-loop learning. Runs entirely on your machine (Ollama for LLM + embeddings, SQLite/IMAP for queue and feedback).
 
-Services:
-- `api` (FastAPI) — `/triage/enqueue` + `/triage/run`
-- `worker` — `tools/triage_worker.py --watch` writes triage JSON + draft to SQLite
-- `ui` — Streamlit review console for triage + drafts
-- `ollama` — local model endpoint (used when TRIAGE_MODE=llm)
-- Retention: `tools/retention.py` runs on container start (set `RETENTION_PURGE_DAYS`/`RETENTION_SCRUB_DAYS` in `.env`)
-- Idempotency/retries: ingestion hashes text+tenant to dedupe; worker retries with backoff then dead-letters after `MAX_RETRIES`
-- UI auth: set `STREAMLIT_AUTH_USER`/`STREAMLIT_AUTH_PASS` to gate the console
+Quick links:
+- English overview: docs/overview_en.md
+- Suomi (FI) overview: docs/overview_fi.md
 
-API surfaces:
-- Primary: `/triage/*` (current demo path)
-- Legacy: `/chat/*` still exists for earlier chatbot flow, but triage is the focus and load tests now target `/triage/enqueue`.
+What it does:
+- Ingests email/text into a queue (IMAP or API enqueue).
+- Triages with an LLM (or heuristic fallback), proposes tools to gather evidence, and drafts replies.
+- Syncs drafts to your IMAP Drafts folder with an Internal Ref footer.
+- Watches Sent mail to record human edits and learn (few-shot/RAG over golden dataset).
 
-One-run demo (tests + triage worker + inbox preview):
+Start (Docker recommended):
+- `cp .env.example .env` and fill IMAP + Ollama settings.
+- `docker compose up -d --build`
+- Or manual: `python tools/daemon.py` (Ollama must be running).
+
+Health check:
 ```
-python tools/one_run.py
-# LLM mode and ensure model is pulled locally
-python tools/one_run.py --triage-mode llm --ollama-model llama3.1:8b --ollama-url http://localhost:11434 --ensure-ollama-model
-# Exports live under data/demo_run/<ts>/ with model slug embedded in filenames
-# If you want to run the full pytest suite: python tools/one_run.py --tests all
+python tools/status.py
 ```
+Look for recent “Last Triage” and nonzero “Drafts Waiting”.
 
-Supervisor (ingest → triage → draft sync → sent feedback → learning):
-```
-python tools/daemon.py
-```
+Core commands:
+- Daemon supervisor: `python tools/daemon.py`
+- Force learning cycle: `python tools/run_learning_cycle.py`
+- Verify few-shot learning: set `TRIAGE_MODE=llm` + models, then `python tools/verify_learning.py`
+- API enqueue example: `curl -X POST http://localhost:8000/triage/enqueue -H "Content-Type: application/json" -H "X-API-KEY: ${INGEST_API_KEY}" -d '{"text":"Emails are bouncing to contoso.com","tenant":"acme"}'`
+
+Env essentials (.env):
+- `TRIAGE_MODE=llm`, `MODEL_NAME=llama3.1:8b`, `OLLAMA_HOST=http://ollama:11434`, `OLLAMA_EMBED_MODEL=nomic-embed-text`
+- `TOOL_SELECT_MODE=llm`
+- IMAP: `IMAP_HOST`, `IMAP_USERNAME`, `IMAP_PASSWORD`, `IMAP_FOLDER_DRAFTS`, `IMAP_FOLDER_SENT`
+- `KNOWLEDGE_SOURCE=./data/knowledge.md` (or your own markdown/CSV/XLS key/value table)
+- `DB_PATH=/data/queue.db`
+
+Files to know:
+- `tools/daemon.py` — scheduler for ingest/triage/draft sync/sent feedback/learning.
+- `tools/status.py` — heartbeat/queue depth check.
+- `tools/verify_learning.py` — proves few-shot retrieval works.
+- `docs/specs/FEEDBACK_LOOP.md` — closed-loop email feedback.
+- `docs/specs/DYNAMIC_FEW_SHOT.md` — few-shot/RAG triage prompt.
+
+Notes:
+- Keep the Internal Ref footer in drafts/sent mail for closed-loop linking.
+- Knowledge loader accepts any key/value content; point `KNOWLEDGE_SOURCE` at your own file.
