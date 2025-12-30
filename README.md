@@ -11,3 +11,7 @@ Services:
 - `worker` — `tools/triage_worker.py --watch` writes triage JSON + draft to SQLite
 - `ui` — Streamlit review console for triage + drafts
 - `ollama` — local model endpoint (used when TRIAGE_MODE=llm)
+
+API surfaces:
+- Primary: `/triage/*` (current demo path)
+- Legacy: `/chat/*` still exists for earlier chatbot flow, but triage is the focus and load tests now target `/triage/enqueue`.

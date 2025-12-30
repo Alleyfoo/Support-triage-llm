@@ -1,10 +1,6 @@
 fastapi
 uvicorn
-langid
-click
+pydantic
 pandas
-openpyxl
-huggingface_hub
-streamlit
-streamlit-autorefresh
 jsonschema
+streamlit

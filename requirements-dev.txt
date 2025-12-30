@@ -1,0 +1,10 @@
+--requirement requirements.txt
+
+# Dev / optional tools
+pytest
+locust
+langid
+click
+openpyxl
+huggingface_hub
+streamlit-autorefresh
