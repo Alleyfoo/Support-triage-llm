@@ -119,12 +119,21 @@ def _count(field: str, bundles: List[Dict[str, Any]]) -> int:
 
 def _generate_report_template(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
     classification = _classify(evidence_bundles)
+    case_type = triage_json.get("case_type")
+    kb_map = {
+        "email_delivery": ["Email delivery troubleshooting"],
+        "integration": ["Integration/webhook troubleshooting"],
+        "auth_access": ["Login/MFA troubleshooting"],
+        "ui_bug": ["UI issue reporting checklist"],
+        "unknown": ["How to report an issue"],
+    }
+    kb_suggestions = kb_map.get(case_type, ["How to report an issue"])
     report = {
         "classification": classification,
         "timeline_summary": _timeline(evidence_bundles),
         "customer_update": _customer_update(classification, evidence_bundles),
         "engineering_escalation": _engineering_escalation(classification, evidence_bundles),
-        "kb_suggestions": ["Email delivery troubleshooting", "Recipient validation checklist"],
+        "kb_suggestions": kb_suggestions,
     }
     warnings: List[str] = []
     try:

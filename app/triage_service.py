@@ -153,6 +153,7 @@ def _build_missing_questions(domains: List[str], reported_time_window: Dict[str,
 
     if domains:
         questions.append(f"Are all recipients at {', '.join(domains)} affected?")
+        questions.append("Can you share example message IDs and timestamps?")
     else:
         questions.append("Which recipient domains are impacted?")
 
