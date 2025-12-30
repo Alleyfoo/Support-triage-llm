@@ -191,6 +191,7 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
                     "raw_payload": json.dumps(e, ensure_ascii=False),
                     "conversation_id": e.get("thread_id") or e.get("conversation_id") or e.get("case_id") or "",
                     "ingest_signature": "one-run-seed",
+                    "subject": e.get("subject") or "Support request",
                 }
                 queue_db.insert_message(payload)
                 inserted_inner += 1
@@ -237,6 +238,7 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
             channel TEXT DEFAULT 'email',
             message_direction TEXT DEFAULT 'inbound',
             message_type TEXT DEFAULT 'text',
+            subject TEXT,
             payload TEXT,
             raw_payload TEXT,
             status TEXT DEFAULT 'queued',
@@ -279,8 +281,8 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
     for e in emails:
         cur.execute(
             """
-            INSERT INTO queue (created_at, status, end_user_handle, subject, payload, case_id)
-            VALUES (?, 'queued', ?, ?, ?, ?)
+            INSERT INTO queue (created_at, status, end_user_handle, subject, payload, case_id, conversation_id, channel, message_direction, message_type, raw_payload, ingest_signature)
+            VALUES (?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 now,
@@ -288,6 +290,12 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
                 e.get("subject") or "Support request",
                 e.get("body") or e.get("text") or "",
                 e.get("id") or e.get("case_id"),
+                e.get("thread_id") or e.get("conversation_id") or e.get("case_id") or "",
+                e.get("channel") or "email",
+                "inbound",
+                "text",
+                json.dumps(e, ensure_ascii=False),
+                "one-run-seed",
             ),
         )
         inserted += 1
