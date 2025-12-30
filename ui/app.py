@@ -1,3 +1,4 @@
+import os
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,23 @@ EXPORT_DIR = Path("data/exports")
 st.set_page_config(page_title="Support Triage Copilot", layout="wide")
 st.title("Support Triage Copilot — Review Console")
 st.caption("Queue → worker → triage JSON + draft. Approve or send back for rewrite. No auto-send.")
+
+
+def _auth_gate() -> bool:
+    user = os.environ.get("STREAMLIT_AUTH_USER")
+    pwd = os.environ.get("STREAMLIT_AUTH_PASS")
+    if not user or not pwd:
+        return True
+    with st.sidebar:
+        st.subheader("Auth required")
+        u = st.text_input("User")
+        p = st.text_input("Password", type="password")
+        if st.button("Sign in"):
+            if u == user and p == pwd:
+                st.session_state["auth_ok"] = True
+            else:
+                st.error("Invalid credentials")
+    return st.session_state.get("auth_ok", False)
 
 
 def _load_cases(limit: int = 100) -> pd.DataFrame:
@@ -69,6 +87,9 @@ def _export_case(row: Dict[str, Any], triage_json: Dict[str, Any], subject: str,
     return path
 
 
+if not _auth_gate():
+    st.stop()
+
 cases_df = _load_cases()
 
 with st.sidebar:
@@ -107,7 +128,7 @@ selected_label = st.selectbox("Select a case", list(options.keys()))
 row_id = options[selected_label]
 row = cases_df[cases_df["id"] == row_id].iloc[0].to_dict()
 
-st.markdown(f"**Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
+st.markdown(f"**Case ID:** {row_id} | **Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
 
 with st.expander("Original text"):
     redacted = row.get("redacted_payload") or row.get("payload", "")

@@ -136,6 +136,24 @@ _DNS_PARAMS_SCHEMA: Dict[str, Any] = {
     "required": ["domain"],
 }
 
+
+def _email_provider_events_sample(params: Dict[str, Any]) -> Dict[str, Any]:
+    tenant = params.get("tenant") or "sample-tenant"
+    start = params.get("start") or datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    end = params.get("end") or (datetime.utcnow().replace(microsecond=0) + timedelta(minutes=15)).isoformat() + "Z"
+    events = [
+        {"ts": start, "type": "accepted", "id": "prov-001", "message_id": "msg-101", "detail": "Provider accepted message"},
+        {"ts": start, "type": "delivered", "id": "prov-002", "message_id": "msg-101", "detail": "Delivered to recipient"},
+        {"ts": end, "type": "quarantined", "id": "prov-003", "message_id": "msg-102", "detail": "Recipient domain quarantined message"},
+    ]
+    return {
+        "source": "email_events",
+        "time_window": {"start": start, "end": end},
+        "tenant": tenant,
+        "summary_counts": {"sent": 2, "bounced": 0, "deferred": 0, "delivered": 1},
+        "events": events,
+    }
+
 _APP_EVENTS_PARAMS_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -167,6 +185,12 @@ def _build_registry() -> Dict[str, Tool]:
             params_schema=_EMAIL_PARAMS_SCHEMA,
             result_schema=evidence_schema,
             fn=_email_events_sample,
+        ),
+        "fetch_email_provider_events_sample": Tool(
+            name="fetch_email_provider_events_sample",
+            params_schema=_EMAIL_PARAMS_SCHEMA,
+            result_schema=evidence_schema,
+            fn=_email_provider_events_sample,
         ),
         "dns_email_auth_check_sample": Tool(
             name="dns_email_auth_check_sample",

@@ -71,3 +71,9 @@ def test_integration_events_tool():
     bundle = registry.run_tool("fetch_integration_events_sample", {"tenant": "acme", "integration_name": "ats"})
     validate_payload(bundle, "evidence_bundle.schema.json")
     assert any(evt["type"] == "auth_failed" for evt in bundle["events"])
+
+
+def test_email_provider_events_tool():
+    bundle = registry.run_tool("fetch_email_provider_events_sample", {"tenant": "acme"})
+    validate_payload(bundle, "evidence_bundle.schema.json")
+    assert any(evt["type"] == "quarantined" for evt in bundle["events"])
