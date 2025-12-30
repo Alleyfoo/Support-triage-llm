@@ -120,6 +120,7 @@ def process_once(processor_id: str) -> bool:
             evidence_created_at=_now_iso(),
             final_report_json=final_report,
             response_metadata={"triage_meta": meta, "report_meta": report_meta},
+            case_id=meta.get("case_id") or row.get("case_id") or row.get("conversation_id"),
         )
         print(f"Processed triage for row {row['id']} status=triaged latency={elapsed:.3f}s")
         metrics.incr("triage_success")
