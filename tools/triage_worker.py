@@ -39,10 +39,18 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
     recipient_domains = triage_result.get("scope", {}).get("recipient_domains") or []
     primary_domain = recipient_domains[0] if recipient_domains else None
 
-    if mode != "rules":
-        mode = "rules"
+    if mode in {"llm", "hybrid"}:
+        for suggestion in triage_result.get("suggested_tools") or []:
+            name = suggestion.get("tool_name")
+            params = suggestion.get("params") if isinstance(suggestion, dict) else {}
+            if name in registry.REGISTRY:
+                tools.append({"name": name, "params": params})
+        if mode == "llm" and tools:
+            return tools
+        if mode == "llm" and not tools:
+            mode = "rules"
 
-    if mode == "rules":
+    if mode in {"rules", "hybrid"}:
         if case_type == "email_delivery":
             tools.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
             if primary_domain:
