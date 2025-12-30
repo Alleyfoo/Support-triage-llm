@@ -50,3 +50,24 @@ def test_no_events_message_when_empty():
     bundle["summary_counts"] = {"sent": 0, "bounced": 0, "deferred": 0, "delivered": 0}
     report = report_service.generate_report({}, [bundle])
     assert "no events" in report["timeline_summary"].lower()
+
+
+def test_dns_tool_schema_and_claim():
+    bundle = registry.run_tool("dns_email_auth_check_sample", {"domain": "contoso.com"})
+    validate_payload(bundle, "evidence_bundle.schema.json")
+    assert bundle["metadata"]["dmarc_policy"] == "reject"
+    report = report_service.generate_report({}, [bundle])
+    warnings = report.get("_meta", {}).get("claim_warnings", [])
+    assert not any("dmarc" in w.lower() for w in warnings)
+
+
+def test_app_events_tool():
+    bundle = registry.run_tool("fetch_app_events_sample", {"tenant": "acme"})
+    validate_payload(bundle, "evidence_bundle.schema.json")
+    assert any(evt["type"] == "workflow_disabled" for evt in bundle["events"])
+
+
+def test_integration_events_tool():
+    bundle = registry.run_tool("fetch_integration_events_sample", {"tenant": "acme", "integration_name": "ats"})
+    validate_payload(bundle, "evidence_bundle.schema.json")
+    assert any(evt["type"] == "auth_failed" for evt in bundle["events"])

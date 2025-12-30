@@ -88,17 +88,52 @@ def generate_report(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str
         "engineering_escalation": _engineering_escalation(classification, evidence_bundles),
         "kb_suggestions": ["Email delivery troubleshooting", "Recipient validation checklist"],
     }
+    warnings: List[str] = []
     try:
         validate_payload(report, "final_report.schema.json")
     except SchemaValidationError as exc:
-        # Attempt a minimal repair once: ensure required fields exist
         report.setdefault("classification", classification)
         report.setdefault("customer_update", _customer_update(classification, evidence_bundles))
         report.setdefault("engineering_escalation", _engineering_escalation(classification, evidence_bundles))
         report.setdefault("kb_suggestions", ["Email delivery troubleshooting"])
         validate_payload(report, "final_report.schema.json")
+        warnings.append(f"Schema repaired: {exc}")
+
+    warnings.extend(_claim_checker(report, evidence_bundles))
+
     report["_meta"] = {
         "prompt_version": PROMPT_VERSION_REPORT,
         "report_mode": config.TRIAGE_MODE,
+        "claim_warnings": warnings,
     }
     return report
+
+
+def _claim_checker(report: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> List[str]:
+    """Ensure claims are backed by evidence; return warnings."""
+    warnings: List[str] = []
+    text = json.dumps(report, ensure_ascii=False).lower()
+    evidence_text = json.dumps(evidence_bundles, ensure_ascii=False).lower()
+
+    checks = {
+        "bounce": lambda: ("bounce" in evidence_text) or _count("bounced", evidence_bundles) > 0,
+        "quarantine": lambda: "quarantine" in evidence_text,
+        "dmarc": lambda: "dmarc" in evidence_text,
+        "spf": lambda: "spf" in evidence_text,
+        "rate limit": lambda: "rate limit" in evidence_text or "429" in evidence_text,
+        "auth failed": lambda: "auth_failed" in evidence_text or "token expired" in evidence_text,
+        "workflow disabled": lambda: "workflow_disabled" in evidence_text,
+    }
+    for keyword, predicate in checks.items():
+        if keyword in text and not predicate():
+            warnings.append(f"Claim '{keyword}' lacks evidence")
+    return warnings
+
+
+def _count(field: str, bundles: List[Dict[str, Any]]) -> int:
+    total = 0
+    for b in bundles:
+        counts = b.get("summary_counts") or {}
+        if field in counts:
+            total += counts.get(field, 0) or 0
+    return total

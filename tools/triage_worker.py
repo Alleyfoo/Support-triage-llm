@@ -14,7 +14,7 @@ from uuid import uuid4
 from app import queue_db
 from app.triage_service import triage
 from app.validation import SchemaValidationError
-from app import report_service
+from app import report_service, config
 from tools import registry
 
 
@@ -30,6 +30,28 @@ def _extract_text(row: Dict[str, Any]) -> str:
         or row.get("text")
         or ""
     ).strip()
+
+
+def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    mode = config.TOOL_SELECT_MODE
+    tools: List[Dict[str, Any]] = []
+    case_type = triage_result.get("case_type", "")
+    recipient_domains = triage_result.get("scope", {}).get("recipient_domains") or []
+    primary_domain = recipient_domains[0] if recipient_domains else None
+
+    if mode == "rules":
+        if case_type == "email_delivery":
+            tools.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
+            if primary_domain:
+                tools.append({"name": "dns_email_auth_check_sample", "params": {"domain": primary_domain}})
+        elif case_type == "integration":
+            tools.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
+        elif case_type == "ui_bug":
+            tools.append({"name": "fetch_app_events_sample", "params": {}})
+    else:
+        # fallback to rules for now
+        return _select_tools({**triage_result, "case_type": case_type})
+    return tools
 
 
 def process_once(processor_id: str) -> bool:
@@ -54,21 +76,13 @@ def process_once(processor_id: str) -> bool:
 
         evidence_bundles = []
         evidence_sources_run = []
-        try:
-            bundle = registry.run_tool(
-                "fetch_email_events_sample",
-                {
-                    "tenant": metadata.get("tenant"),
-                    "recipient_domain": (triage_result.get("scope", {}).get("recipient_domains") or [None])[0],
-                    "start": None,
-                    "end": None,
-                },
-            )
-            evidence_bundles.append(bundle)
-            evidence_sources_run.append("fetch_email_events_sample")
-        except Exception as exc:
-            evidence_bundles = []
-            evidence_sources_run.append(f"error:{exc}")
+        for tool in _select_tools(triage_result):
+            try:
+                bundle = registry.run_tool(tool["name"], tool.get("params"))
+                evidence_bundles.append(bundle)
+                evidence_sources_run.append(tool["name"])
+            except Exception as exc:
+                evidence_sources_run.append(f"{tool['name']}:error:{exc}")
 
         final_report = report_service.generate_report(triage_result, evidence_bundles)
         report_meta = final_report.pop("_meta", {})

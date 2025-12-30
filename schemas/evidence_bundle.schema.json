@@ -30,6 +30,10 @@
         "delivered": { "type": "integer", "minimum": 0 }
       }
     },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
     "events": {
       "type": "array",
       "items": {
