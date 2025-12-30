@@ -36,6 +36,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "demo_queue.sqlite"
 DEFAULT_OUT_DIR = REPO_ROOT / "data" / "demo_run"
 
@@ -115,8 +117,14 @@ def _ollama_pull_model(model: str) -> None:
         raise RuntimeError(f"Failed to pull model via {base}/api/pull: {exc}") from exc
 
 
-def _run_pytest() -> int:
-    cmd = [sys.executable, "-m", "pytest", "-q"]
+def _run_pytest(tests: Optional[List[str]] = None) -> int:
+    test_targets = tests or [
+        "tests/test_scenarios_v2.py",
+        "tests/test_time_window.py",
+        "tests/test_tool_selection.py",
+        "tests/test_idempotency_and_retries.py",
+    ]
+    cmd = [sys.executable, "-m", "pytest", "-q", *test_targets]
     print(f"\n[tests] running: {' '.join(cmd)}")
     try:
         return subprocess.call(cmd, cwd=str(REPO_ROOT))
@@ -390,6 +398,7 @@ def main() -> int:
     p.add_argument("--db-path", default=str(DEFAULT_DB_PATH), help="SQLite DB path for this demo run.")
     p.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR), help="Output directory for demo artifacts.")
     p.add_argument("--skip-tests", action="store_true", help="Skip running pytest.")
+    p.add_argument("--tests", nargs="+", help="Optional explicit pytest targets (default: fast triage subset). Use 'all' to run full suite.")
     p.add_argument("--skip-seed", action="store_true", help="Skip seeding fake emails.")
     p.add_argument("--skip-worker", action="store_true", help="Skip draining queue with triage_worker.")
     p.add_argument("--triage-mode", default=None, help="Override TRIAGE_MODE env (rules|heuristic|llm).")
@@ -432,7 +441,10 @@ def main() -> int:
 
     test_rc = 0
     if not args.skip_tests:
-        test_rc = _run_pytest()
+        if args.tests and len(args.tests) == 1 and args.tests[0].lower() == "all":
+            test_rc = _run_pytest(tests=["tests"])
+        else:
+            test_rc = _run_pytest(tests=args.tests)
 
     os.environ["DB_PATH"] = str(db_path)
     _ensure_parent_dir(db_path)
