@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -7,9 +8,11 @@ import streamlit as st
 
 from app import queue_db
 
+EXPORT_DIR = Path("data/exports")
+
 st.set_page_config(page_title="Support Triage Copilot", layout="wide")
-st.title("Support Triage Copilot ? Review Console")
-st.caption("Queue ? worker ? triage JSON + draft. Approve or send back for rewrite. No auto-send.")
+st.title("Support Triage Copilot — Review Console")
+st.caption("Queue → worker → triage JSON + draft. Approve or send back for rewrite. No auto-send.")
 
 
 def _load_cases(limit: int = 100) -> pd.DataFrame:
@@ -49,6 +52,23 @@ def _update_status(row_id: int, status: str, subject: str | None = None, body: s
     )
 
 
+def _export_case(row: Dict[str, Any], triage_json: Dict[str, Any], subject: str, body: str, action: str) -> Path:
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "row_id": row.get("id"),
+        "conversation_id": row.get("conversation_id"),
+        "tenant": row.get("end_user_handle"),
+        "triage_json": triage_json,
+        "draft": {"subject": subject, "body": body},
+        "action": action,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    filename = f"{row.get('id')}_{action}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    path = EXPORT_DIR / filename
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
 cases_df = _load_cases()
 
 with st.sidebar:
@@ -59,11 +79,26 @@ with st.sidebar:
         counts = cases_df["status"].value_counts() if "status" in cases_df else {}
         for status, count in counts.items():
             st.write(f"{status}: {count}")
-        st.write("Use `python tools/triage_worker.py --watch` to process queued items.")
+        statuses = sorted(counts.index.tolist())
+        status_filter = st.multiselect("Filter by status", statuses, default=statuses)
+        tenant_filter = st.text_input("Filter by tenant/end user")
+        email_only = st.checkbox("Email delivery cases only", value=False)
+        st.write("Run worker: `python tools/triage_worker.py --watch`")
 
 st.subheader("Cases")
 if cases_df.empty:
     st.info("No cases available yet.")
+    raise SystemExit
+
+if "status" in cases_df:
+    cases_df = cases_df[cases_df["status"].isin(status_filter)]
+if "end_user_handle" in cases_df and tenant_filter:
+    cases_df = cases_df[cases_df["end_user_handle"].astype(str).str.contains(tenant_filter, case=False, na=False)]
+if email_only and "triage_json" in cases_df:
+    cases_df = cases_df[cases_df["triage_json"].apply(lambda t: isinstance(t, dict) and t.get("case_type") == "email_delivery")]
+
+if cases_df.empty:
+    st.info("No cases match current filters.")
     raise SystemExit
 
 cases_df = cases_df.sort_values(by="created_at", ascending=False)
@@ -98,8 +133,7 @@ if isinstance(missing_questions, str):
 
 st.subheader("Missing info questions")
 if missing_questions:
-    st.markdown("
-".join(f"- {q}" for q in missing_questions))
+    st.markdown("\n".join(f"- {q}" for q in missing_questions))
 else:
     st.write("None captured.")
 
@@ -107,7 +141,8 @@ col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Approve draft", use_container_width=True):
         _update_status(row_id, "approved", subject, body)
-        st.success("Case marked approved.")
+        export_path = _export_case(row, triage_json, subject, body, "approved")
+        st.success(f"Case marked approved. Exported to {export_path}")
 with col2:
     if st.button("Needs rewrite", use_container_width=True):
         _update_status(row_id, "rewrite", subject, body)
@@ -115,7 +150,8 @@ with col2:
 with col3:
     if st.button("Escalate", use_container_width=True):
         _update_status(row_id, "escalate_pending", subject, body)
-        st.info("Case marked for escalation (manual follow-up required).")
+        export_path = _export_case(row, triage_json, subject, body, "escalate_pending")
+        st.info(f"Case marked for escalation. Exported to {export_path}")
 
 with st.expander("Raw record"):
     st.json(row)

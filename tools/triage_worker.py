@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from app import queue_db
 from app.triage_service import triage
+from app.validation import SchemaValidationError
 
 
 def _now_iso() -> str:
@@ -64,9 +65,25 @@ def process_once(processor_id: str) -> bool:
             llm_model=meta.get("llm_model", ""),
             prompt_version=meta.get("prompt_version", ""),
             redaction_applied=1 if meta.get("redaction_applied") else 0,
+            triage_mode=meta.get("triage_mode", ""),
+            llm_latency_ms=meta.get("llm_latency_ms"),
+            llm_attempts=meta.get("llm_attempts"),
+            schema_valid=1 if meta.get("schema_valid") else 0,
             response_metadata={"triage_meta": meta},
         )
         print(f"Processed triage for row {row['id']} status=triaged latency={elapsed:.3f}s")
+    except SchemaValidationError as exc:
+        elapsed = time.perf_counter() - start
+        queue_db.update_row_status(
+            row["id"],
+            status="failed_schema",
+            processor_id=processor_id,
+            started_at=started_at,
+            finished_at=_now_iso(),
+            latency_seconds=elapsed,
+            response_metadata={"error": str(exc)},
+        )
+        print(f"Schema validation failed for row {row['id']}: {exc}")
     except Exception as exc:  # pragma: no cover - defensive
         elapsed = time.perf_counter() - start
         queue_db.update_row_status(

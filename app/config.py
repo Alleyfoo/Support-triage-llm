@@ -40,8 +40,8 @@ N_THREADS = _parse_int_default(8, "N_THREADS")
 CTX = _parse_int_default(2048, "CTX")
 TEMP = _parse_float_default(0.0, "MODEL_TEMP", "TEMP")
 MAX_TOKENS = _parse_int_default(512, "MODEL_MAX_TOKENS", "MAX_TOKENS")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
+OLLAMA_MODEL = os.environ.get("MODEL_NAME") or os.environ.get("OLLAMA_MODEL")
+OLLAMA_HOST = os.environ.get("OLLAMA_URL") or os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
 OLLAMA_TIMEOUT = _parse_float_default(60.0, "OLLAMA_TIMEOUT")
 OLLAMA_OPTIONS = os.environ.get("OLLAMA_OPTIONS")
 REQUIRE_API_KEY = (os.environ.get("REQUIRE_API_KEY") or "false").lower() == "true"
@@ -69,3 +69,6 @@ ACCOUNT_DATA_PATH = os.environ.get(
     "ACCOUNT_DATA_PATH",
     str(Path(__file__).resolve().parent.parent / "data" / "account_records.xlsx"),
 )
+
+DB_PATH = os.environ.get("DB_PATH") or os.environ.get("QUEUE_DB_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "queue.db")
+TRIAGE_MODE = (os.environ.get("TRIAGE_MODE") or "heuristic").lower()

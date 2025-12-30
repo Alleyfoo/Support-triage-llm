@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-DB_PATH = Path(os.environ.get("QUEUE_DB_PATH", Path("data") / "queue.db"))
+from . import config
+
+DB_PATH = Path(config.DB_PATH)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS queue (
@@ -85,6 +86,10 @@ ALLOWED_UPDATE_FIELDS = {
     "llm_model",
     "prompt_version",
     "redaction_applied",
+    "triage_mode",
+    "llm_latency_ms",
+    "llm_attempts",
+    "schema_valid",
     "ingest_signature",
     "created_at",
 }
@@ -127,6 +132,10 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "llm_model": "TEXT",
         "prompt_version": "TEXT",
         "redaction_applied": "INTEGER",
+        "triage_mode": "TEXT",
+        "llm_latency_ms": "INTEGER",
+        "llm_attempts": "INTEGER",
+        "schema_valid": "INTEGER",
     }
     for name, col_type in desired.items():
         if name not in existing:

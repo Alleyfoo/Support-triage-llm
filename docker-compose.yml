@@ -1,41 +1,66 @@
 version: "3.9"
 
 services:
-  app:
+  api:
     build: .
     command: uvicorn app.server:app --host 0.0.0.0 --port 8000
     env_file:
       - .env
     environment:
       USE_DB_QUEUE: "true"
-      QUEUE_DB_PATH: /workspace/data/queue.db
-      OLLAMA_HOST: http://ollama:11434
+      DB_PATH: /data/queue.db
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       REQUIRE_API_KEY: ${REQUIRE_API_KEY:-true}
       INGEST_API_KEY: ${INGEST_API_KEY:-dev-api-key}
     volumes:
-      - ./:/workspace
-      - queue-data:/workspace/data
+      - ./:/app
+      - queue-data:/data
     ports:
       - "8000:8000"
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
     networks:
       - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   worker:
     build: .
-    command: python tools/chat_worker.py --watch --processor-id worker-1 --poll-interval 2
+    command: python tools/triage_worker.py --watch --processor-id worker-1 --poll-interval 2
     env_file:
       - .env
     environment:
       USE_DB_QUEUE: "true"
-      QUEUE_DB_PATH: /workspace/data/queue.db
-      OLLAMA_HOST: http://ollama:11434
+      DB_PATH: /data/queue.db
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
     volumes:
-      - ./:/workspace
-      - queue-data:/workspace/data
+      - ./:/app
+      - queue-data:/data
     depends_on:
-      - app
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+
+  ui:
+    build: .
+    command: streamlit run ui/app.py --server.port=8501 --server.address=0.0.0.0
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/queue.db
+    volumes:
+      - ./:/app
+      - queue-data:/data
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
     networks:
       - internal
 
@@ -47,6 +72,11 @@ services:
       - ollama-models:/root/.ollama
     networks:
       - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 networks:
   internal:

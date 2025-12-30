@@ -1,18 +1,25 @@
-"""Triage service: redaction -> heuristic triage -> schema validation."""
+"""Triage service: redaction -> triage (heuristic or LLM) -> schema validation."""
 
 from __future__ import annotations
 
+import json
 import re
+import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
+from . import config
 from .redaction import redact
-from .validation import validate_with_retry
+from .validation import SchemaValidationError, validate_payload, validate_with_retry
 
-PROMPT_VERSION = "triage-v1"
-LLM_MODEL = "heuristic"
+PROMPT_VERSION_HEURISTIC = "triage-heuristic-v1"
+PROMPT_VERSION_LLM = "triage-llm-v1"
 
 DOMAIN_PATTERN = re.compile(r"\b([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b")
 EMAIL_PATTERN = re.compile(r"\b[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b")
+SCHEMA_TEXT = (Path(__file__).resolve().parents[1] / "schemas" / "triage.schema.json").read_text(encoding="utf-8")
 
 
 def _infer_case_type(text: str) -> str:
@@ -90,18 +97,13 @@ def _build_draft_reply(domains: List[str], severity: str) -> Dict[str, str]:
     return {"subject": subject, "body": "\n".join(body_lines)}
 
 
-def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Redact, extract triage fields, validate, and return triage JSON."""
-    metadata = metadata or {}
-    redaction = redact(raw_text)
-    text = redaction["redacted_text"]
-
+def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     domains = _detect_domains(text)
     case_type = _infer_case_type(text)
     severity = _infer_severity(text)
     tenant_hint = metadata.get("tenant") or metadata.get("customer") or ""
 
-    triage_payload = {
+    return {
         "case_type": case_type,
         "severity": severity,
         "time_window": {"start": None, "end": None, "confidence": 0.1},
@@ -113,15 +115,59 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
             "is_all_users": False,
             "notes": "",
         },
-        "symptoms": [raw_text[:200]],
+        "symptoms": [text[:200]],
         "examples": [],
         "missing_info_questions": _build_missing_questions(domains),
         "suggested_tools": _suggest_tools(domains),
         "draft_customer_reply": _build_draft_reply(domains, severity),
     }
 
+
+def _call_ollama(prompt: str) -> str:
+    if not config.OLLAMA_MODEL:
+        raise RuntimeError("OLLAMA_MODEL/MODEL_NAME not set")
+    payload = {
+        "model": config.OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": "You are a precise support triage assistant. Return only JSON matching the schema."},
+            {"role": "user", "content": prompt},
+        ],
+        "stream": False,
+        "options": {
+            "temperature": float(config.TEMP),
+            "num_predict": int(config.MAX_TOKENS),
+        },
+    }
+    data = json.dumps(payload).encode("utf-8")
+    url = config.OLLAMA_HOST.rstrip("/") + "/api/chat"
+    request = Request(url, data=data, headers={"Content-Type": "application/json"})
+    with urlopen(request, timeout=config.OLLAMA_TIMEOUT) as response:  # nosec - local inference endpoint
+        body = response.read()
+    parsed = json.loads(body)
+    message = parsed.get("message", {})
+    content = message.get("content")
+    if not isinstance(content, str):
+        raise RuntimeError("LLM returned empty content")
+    return content
+
+
+def _extract_json_block(text: str) -> Dict[str, Any]:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        snippet = text[start : end + 1]
+        return json.loads(snippet)
+    raise json.JSONDecodeError("Could not parse JSON", text, 0)
+
+
+def _triage_heuristic(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    triage_payload = _base_triage_payload(text, metadata)
+
     def _fix(payload: Dict[str, Any]) -> Dict[str, Any]:
-        # Ensure required arrays exist; keep simple for now.
         payload.setdefault("examples", [])
         payload.setdefault("suggested_tools", [])
         payload.setdefault("missing_info_questions", [])
@@ -130,8 +176,66 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
 
     triage_payload = validate_with_retry(triage_payload, "triage.schema.json", fixer=_fix)
     triage_payload["_meta"] = {
-        "llm_model": LLM_MODEL,
-        "prompt_version": PROMPT_VERSION,
-        "redaction_applied": redaction["redaction_applied"],
+        "llm_model": "heuristic",
+        "prompt_version": PROMPT_VERSION_HEURISTIC,
+        "triage_mode": "heuristic",
+        "llm_latency_ms": 0,
+        "llm_attempts": 0,
+        "schema_valid": True,
     }
+    return triage_payload
+
+
+def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    prompt_base = (
+        "Customer message:\n"
+        f"{text}\n\n"
+        "Return ONLY a JSON object matching this schema:\n"
+        f"{SCHEMA_TEXT}\n"
+    )
+    last_error: str = ""
+    attempts = 0
+    start = time.perf_counter()
+    for attempt in range(2):
+        attempts = attempt + 1
+        prompt = prompt_base
+        if last_error:
+            prompt += f"\nPrevious attempt failed schema validation: {last_error}\nReturn ONLY valid JSON."
+        try:
+            raw = _call_ollama(prompt)
+            parsed = _extract_json_block(raw)
+            validate_payload(parsed, "triage.schema.json")
+            latency_ms = int((time.perf_counter() - start) * 1000)
+            parsed["_meta"] = {
+                "llm_model": config.OLLAMA_MODEL or "ollama",
+                "prompt_version": PROMPT_VERSION_LLM,
+                "triage_mode": "llm",
+                "llm_latency_ms": latency_ms,
+                "llm_attempts": attempts,
+                "schema_valid": True,
+            }
+            return parsed
+        except (SchemaValidationError, json.JSONDecodeError) as exc:
+            last_error = str(exc)
+            continue
+        except (HTTPError, URLError, TimeoutError, OSError) as exc:
+            raise RuntimeError(f"LLM call failed: {exc}") from exc
+    raise SchemaValidationError(last_error or "LLM could not produce schema-valid JSON")
+
+
+def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Redact, extract triage fields, validate, and return triage JSON."""
+    metadata = metadata or {}
+    redaction = redact(raw_text)
+    text = redaction["redacted_text"]
+
+    mode = config.TRIAGE_MODE
+    if mode == "llm":
+        triage_payload = _triage_llm(text, metadata)
+    else:
+        triage_payload = _triage_heuristic(text, metadata)
+
+    meta = triage_payload.get("_meta", {})
+    meta["redaction_applied"] = redaction["redaction_applied"]
+    triage_payload["_meta"] = meta
     return triage_payload
