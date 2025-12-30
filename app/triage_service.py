@@ -325,4 +325,23 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
     meta["redacted_text"] = redaction["redacted_text"]
     meta["case_id"] = metadata.get("case_id")
     triage_payload["_meta"] = meta
+
+    # Ensure redacted snippets persist in symptoms/draft when PII was removed.
+    if meta.get("redaction_applied") and redaction.get("redacted_text"):
+        redacted_snippet = redaction["redacted_text"][:200]
+        symptoms = triage_payload.get("symptoms") or []
+        if isinstance(symptoms, list) and not any(isinstance(s, str) and "[REDACTED" in s for s in symptoms):
+            if symptoms:
+                symptoms[0] = redacted_snippet
+            else:
+                symptoms = [redacted_snippet]
+            triage_payload["symptoms"] = symptoms
+
+        draft = triage_payload.get("draft_customer_reply") or {}
+        if "[REDACTED" in redacted_snippet and not (draft.get("body") and "[REDACTED" in draft.get("body", "")):
+            body = (draft.get("body") or "").strip()
+            suffix = f"\n\nRedacted excerpt: {redacted_snippet}"
+            draft["body"] = (body + suffix).strip()
+            triage_payload["draft_customer_reply"] = draft
+
     return triage_payload
