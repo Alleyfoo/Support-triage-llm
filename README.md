@@ -18,3 +18,11 @@ Services:
 API surfaces:
 - Primary: `/triage/*` (current demo path)
 - Legacy: `/chat/*` still exists for earlier chatbot flow, but triage is the focus and load tests now target `/triage/enqueue`.
+
+One-run demo (tests + triage worker + inbox preview):
+```
+python tools/one_run.py
+# LLM mode and ensure model is pulled locally
+python tools/one_run.py --triage-mode llm --ollama-model llama3.2:3b --ensure-ollama-model
+# Exports live under data/demo_run/<ts>/ with model slug embedded in filenames
+```
