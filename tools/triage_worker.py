@@ -18,6 +18,14 @@ from app.validation import SchemaValidationError
 from app import report_service, config, metrics
 from tools import registry
 
+# Shared mapping for routing/metrics; keep in sync with _select_tools logic.
+EXPECTED_TOOLS_BY_CASE = {
+    "email_delivery": {"fetch_email_events_sample", "dns_email_auth_check_sample"},
+    "integration": {"fetch_integration_events_sample"},
+    "auth_access": {"fetch_app_events_sample"},
+    "ui_bug": {"fetch_app_events_sample"},
+}
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -146,6 +154,8 @@ def process_once(processor_id: str) -> bool:
             triage_json=triage_result,
             draft_customer_reply_subject=triage_result["draft_customer_reply"]["subject"],
             draft_customer_reply_body=triage_result["draft_customer_reply"]["body"],
+            triage_draft_subject=triage_result["draft_customer_reply"]["subject"],
+            triage_draft_body=triage_result["draft_customer_reply"]["body"],
             missing_info_questions=triage_result.get("missing_info_questions") or [],
             llm_model=meta.get("llm_model", ""),
             prompt_version=meta.get("prompt_version", ""),

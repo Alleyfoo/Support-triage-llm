@@ -523,7 +523,7 @@ def main() -> int:
     rows = _fetch_rows(db_path)
     model_slug = _model_slug(rows)
 
-    inbox_md = ["# TriageBot – Inbox Preview", f"- Generated: {dt.datetime.now().isoformat()}", f"- DB: `{db_path}`", f"- Rows: {len(rows)}", ""]
+    inbox_md = ["# TriageBot - Inbox Preview", f"- Generated: {dt.datetime.now().isoformat()}", f"- DB: `{db_path}`", f"- Rows: {len(rows)}", ""]
 
     for row in rows:
         subject, body = _render_inbox_email(row)
@@ -551,6 +551,27 @@ def main() -> int:
     print(f"\n[export] Wrote inbox preview: {preview_path}")
     print(f"[export] Wrote .eml files to: {out_emails}")
     print(f"[export] Wrote row JSON to: {out_rows}")
+
+    # Optional learning metrics for this run
+    try:
+        metrics_out = out_root / "learning"
+        metrics_out.mkdir(parents=True, exist_ok=True)
+        cmd = [
+            sys.executable,
+            str(REPO_ROOT / "tools" / "learning_report.py"),
+            "--db-path",
+            str(db_path),
+            "--out-dir",
+            str(metrics_out),
+        ]
+        print(f"\n[learning] running: {' '.join(cmd)}")
+        rc_metrics = subprocess.call(cmd, cwd=str(REPO_ROOT))
+        if rc_metrics == 0:
+            print(f"[learning] Wrote metrics to {metrics_out}")
+        else:
+            print(f"[learning] Metrics script exited with {rc_metrics}")
+    except Exception as exc:  # pragma: no cover - best effort
+        print(f"[learning] Skipped metrics due to error: {exc}")
 
     if test_rc != 0:
         print(f"\n[tests] FAILED (exit={test_rc}) – demo outputs still generated.")

@@ -42,11 +42,22 @@ CREATE TABLE IF NOT EXISTS queue (
     triage_json TEXT,
     draft_customer_reply_subject TEXT,
     draft_customer_reply_body TEXT,
+    triage_draft_subject TEXT,
+    triage_draft_body TEXT,
+    review_final_subject TEXT,
+    review_final_body TEXT,
     missing_info_questions TEXT,
     llm_model TEXT,
     prompt_version TEXT,
     redaction_applied INTEGER,
     ingest_signature TEXT,
+    review_action TEXT,
+    reviewed_at TEXT,
+    reviewer TEXT,
+    review_notes TEXT,
+    error_tags TEXT,
+    diff_subject_ratio REAL,
+    diff_body_ratio REAL,
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -91,6 +102,10 @@ ALLOWED_UPDATE_FIELDS = {
     "triage_json",
     "draft_customer_reply_subject",
     "draft_customer_reply_body",
+    "triage_draft_subject",
+    "triage_draft_body",
+    "review_final_subject",
+    "review_final_body",
     "missing_info_questions",
     "llm_model",
     "prompt_version",
@@ -105,6 +120,13 @@ ALLOWED_UPDATE_FIELDS = {
     "evidence_created_at",
     "final_report_json",
     "ingest_signature",
+    "review_action",
+    "reviewed_at",
+    "reviewer",
+    "review_notes",
+    "error_tags",
+    "diff_subject_ratio",
+    "diff_body_ratio",
     "created_at",
 }
 
@@ -154,6 +176,10 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "triage_json": "TEXT",
         "draft_customer_reply_subject": "TEXT",
         "draft_customer_reply_body": "TEXT",
+        "triage_draft_subject": "TEXT",
+        "triage_draft_body": "TEXT",
+        "review_final_subject": "TEXT",
+        "review_final_body": "TEXT",
         "missing_info_questions": "TEXT",
         "llm_model": "TEXT",
         "prompt_version": "TEXT",
@@ -167,6 +193,13 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "evidence_sources_run": "TEXT",
         "evidence_created_at": "TEXT",
         "final_report_json": "TEXT",
+        "review_action": "TEXT",
+        "reviewed_at": "TEXT",
+        "reviewer": "TEXT",
+        "review_notes": "TEXT",
+        "error_tags": "TEXT",
+        "diff_subject_ratio": "REAL",
+        "diff_body_ratio": "REAL",
     }
     for name, col_type in desired.items():
         if name not in existing:
@@ -439,6 +472,7 @@ def _maybe_json_dump(key: str, value: Any) -> Any:
         "evidence_json",
         "evidence_sources_run",
         "final_report_json",
+        "error_tags",
     }:
         if value in (None, "", [], {}):
             return ""

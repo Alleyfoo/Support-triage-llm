@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
+from difflib import SequenceMatcher
 
 import pandas as pd
 import streamlit as st
@@ -12,8 +13,8 @@ from app import queue_db
 EXPORT_DIR = Path("data/exports")
 
 st.set_page_config(page_title="Support Triage Copilot", layout="wide")
-st.title("Support Triage Copilot — Review Console")
-st.caption("Queue → worker → triage JSON + draft. Approve or send back for rewrite. No auto-send.")
+st.title("Support Triage Copilot - Review Console")
+st.caption("Queue -> worker -> triage JSON + draft. Approve or send back for rewrite. No auto-send.")
 
 
 def _auth_gate() -> bool:
@@ -60,16 +61,6 @@ def _pretty_json(payload: Dict[str, Any]) -> str:
         return str(payload)
 
 
-def _update_status(row_id: int, status: str, subject: str | None = None, body: str | None = None) -> None:
-    queue_db.update_row_status(
-        row_id,
-        status=status,
-        draft_customer_reply_subject=subject or "",
-        draft_customer_reply_body=body or "",
-        finished_at=None,
-    )
-
-
 def _export_case(row: Dict[str, Any], triage_json: Dict[str, Any], subject: str, body: str, action: str) -> Path:
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -85,6 +76,15 @@ def _export_case(row: Dict[str, Any], triage_json: Dict[str, Any], subject: str,
     path = EXPORT_DIR / filename
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def _edit_ratio(a: str | None, b: str | None) -> float:
+    a = a or ""
+    b = b or ""
+    if not a and not b:
+        return 0.0
+    sim = SequenceMatcher(None, a, b).ratio()
+    return round(1.0 - sim, 4)
 
 
 if not _auth_gate():
@@ -160,19 +160,80 @@ if missing_questions:
 else:
     st.write("None captured.")
 
+reviewer = st.text_input("Reviewer (optional)", value=os.environ.get("USER") or os.environ.get("USERNAME") or "")
+review_notes = st.text_area("Review notes (optional)", height=60)
+reviewed_at = datetime.now(timezone.utc).isoformat()
+error_tag_options = [
+    "wrong_case_type",
+    "redundant_questions",
+    "tone_cold",
+    "missing_time_details",
+    "missing_scope_details",
+    "hallucinated_claim",
+]
+error_tags = st.multiselect("Error tags (optional)", error_tag_options)
+
 col1, col2, col3 = st.columns(3)
 with col1:
     if st.button("Approve draft", use_container_width=True):
-        _update_status(row_id, "approved", subject, body)
+        final_subject = row.get("triage_draft_subject") or subject
+        final_body = row.get("triage_draft_body") or body
+        queue_db.update_row_status(
+            row_id,
+            status="approved",
+            review_action="approved",
+            reviewed_at=reviewed_at,
+            reviewer=reviewer,
+            review_notes=review_notes,
+            review_final_subject=final_subject,
+            review_final_body=final_body,
+            diff_subject_ratio=0.0,
+            diff_body_ratio=0.0,
+            error_tags=error_tags,
+            draft_customer_reply_subject=final_subject,
+            draft_customer_reply_body=final_body,
+        )
         export_path = _export_case(row, triage_json, subject, body, "approved")
         st.success(f"Case marked approved. Exported to {export_path}")
 with col2:
     if st.button("Needs rewrite", use_container_width=True):
-        _update_status(row_id, "rewrite", subject, body)
+        diff_subj = _edit_ratio(row.get("triage_draft_subject"), subject)
+        diff_body = _edit_ratio(row.get("triage_draft_body"), body)
+        queue_db.update_row_status(
+            row_id,
+            status="rewrite",
+            review_action="rewrite",
+            reviewed_at=reviewed_at,
+            reviewer=reviewer,
+            review_notes=review_notes,
+            review_final_subject=subject,
+            review_final_body=body,
+            diff_subject_ratio=diff_subj,
+            diff_body_ratio=diff_body,
+            error_tags=error_tags,
+            draft_customer_reply_subject=subject,
+            draft_customer_reply_body=body,
+        )
         st.warning("Case flagged for rewrite.")
 with col3:
     if st.button("Escalate", use_container_width=True):
-        _update_status(row_id, "escalate_pending", subject, body)
+        diff_subj = _edit_ratio(row.get("triage_draft_subject"), subject)
+        diff_body = _edit_ratio(row.get("triage_draft_body"), body)
+        queue_db.update_row_status(
+            row_id,
+            status="escalate_pending",
+            review_action="escalate_pending",
+            reviewed_at=reviewed_at,
+            reviewer=reviewer,
+            review_notes=review_notes,
+            review_final_subject=subject,
+            review_final_body=body,
+            diff_subject_ratio=diff_subj,
+            diff_body_ratio=diff_body,
+            error_tags=error_tags,
+            draft_customer_reply_subject=subject,
+            draft_customer_reply_body=body,
+        )
         export_path = _export_case(row, triage_json, subject, body, "escalate_pending")
         st.info(f"Case marked for escalation. Exported to {export_path}")
 
