@@ -213,6 +213,13 @@ def _seed_queue_with_fake_emails(db_path: Path) -> int:
     except Exception as exc:
         print(f"[seed] queue_db seeding failed ({exc}); falling back to raw sqlite insert.")
 
+    # Reset the demo DB to a clean slate for fallback schema.
+    try:
+        if db_path.exists():
+            db_path.unlink()
+    except OSError:
+        pass
+
     _ensure_parent_dir(db_path)
     conn = sqlite3.connect(str(db_path))
     cur = conn.cursor()
