@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from . import config
 from .redaction import redact
 from .validation import SchemaValidationError, validate_payload, validate_with_retry
-from .time_window import parse_time_window
+from .time_window import parse_time_window, ISO_PATTERN
 
 PROMPT_VERSION_HEURISTIC = "triage-heuristic-v1"
 PROMPT_VERSION_LLM = "triage-llm-v1"
@@ -25,6 +25,8 @@ ALLOWED_TOP_KEYS = {
     "case_type",
     "severity",
     "time_window",
+    "reported_time_window",
+    "time_ambiguity",
     "scope",
     "symptoms",
     "examples",
@@ -32,6 +34,8 @@ ALLOWED_TOP_KEYS = {
     "suggested_tools",
     "draft_customer_reply",
 }
+TIME_RANGE_RE = re.compile(r"\b(\d{1,2}:\d{2})\s*(?:-|to|–)\s*(\d{1,2}:\d{2})\b", re.IGNORECASE)
+CLOCK_RE = re.compile(r"\b\d{1,2}:\d{2}\b")
 ALLOWED_TOP_KEYS = {
     "case_type",
     "severity",
@@ -51,6 +55,8 @@ def _infer_case_type(text: str) -> str:
         return "integration"
     if "bounce" in lower or "deliver" in lower or "email" in lower:
         return "email_delivery"
+    if any(k in lower for k in ["mfa", "2fa", "otp", "authenticator", "login", "sign-in", "sign in"]):
+        return "auth_access"
     if "ui" in lower or "button" in lower or "page" in lower:
         return "ui_bug"
     if "import" in lower:
@@ -75,32 +81,96 @@ def _infer_severity(text: str) -> str:
     return "low"
 
 
+def _extract_time_fields(text: str) -> Dict[str, Any]:
+    lower = text.lower()
+    time_window = {"start": None, "end": None, "confidence": 0.1}
+    reported = {
+        "raw_text": None,
+        "timezone": None,
+        "has_date": False,
+        "has_only_clock_time": False,
+        "confidence": 0.1,
+    }
+    time_ambiguity = "missing_date"
+
+    iso = ISO_PATTERN.search(text)
+    if iso:
+        try:
+            dt = datetime.fromisoformat(iso.group(0))
+            time_window = {"start": dt.isoformat() + "Z", "end": None, "confidence": 0.8}
+            reported.update({"raw_text": iso.group(0), "timezone": None, "has_date": True, "has_only_clock_time": False, "confidence": 0.8})
+            time_ambiguity = "none"
+            return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+        except Exception:
+            pass
+
+    range_match = TIME_RANGE_RE.search(text)
+    if range_match:
+        raw = range_match.group(0)
+        tz = "UTC" if "utc" in lower else None
+        reported.update(
+            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": 0.5}
+        )
+        time_ambiguity = "missing_date"
+        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+
+    if CLOCK_RE.search(text):
+        raw = CLOCK_RE.search(text).group(0)
+        tz = "UTC" if "utc" in lower else None
+        reported.update(
+            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": 0.4}
+        )
+        time_ambiguity = "missing_date" if tz else "missing_timezone"
+        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+
+    if any(token in lower for token in ["yesterday", "last night", "since yesterday", "earlier today"]):
+        reported.update({"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": 0.2})
+        time_ambiguity = "relative_ambiguous"
+        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+
+    # No time clues
+    return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+
+
 def _detect_domains(text: str) -> List[str]:
     domains = set(match.group(1) for match in EMAIL_PATTERN.finditer(text))
     domains.update(DOMAIN_PATTERN.findall(text))
     return sorted(domains)
 
 
-def _build_missing_questions(domains: List[str]) -> List[str]:
-    questions = [
-        "What time window is impacted (start/end in UTC)?",
-        "How many users or recipients are affected?",
-    ]
+def _build_missing_questions(domains: List[str], reported_time_window: Dict[str, Any], time_ambiguity: str) -> List[str]:
+    questions: List[str] = []
+    if reported_time_window.get("raw_text"):
+        questions.append(
+            f"Can you confirm the date (YYYY-MM-DD) for {reported_time_window['raw_text']}?"
+        )
+        if time_ambiguity == "missing_timezone":
+            questions.append("What timezone is that time in?")
+    else:
+        questions.append("What time window is impacted (start/end in UTC)?")
+
+    questions.append("How many users or recipients are affected?")
+
     if domains:
         questions.append(f"Are all recipients at {', '.join(domains)} affected?")
+    else:
+        questions.append("Which recipient domains are impacted?")
+
     questions.append("Have there been any recent config or provider changes?")
     return questions[:6]
 
 
 def _suggest_tools(domains: List[str]) -> List[Dict[str, Any]]:
-    tools: List[Dict[str, Any]] = [
-        {"tool_name": "fetch_email_events", "reason": "Confirm bounce or delivery patterns", "params": {}},
-    ]
+    tools: List[Dict[str, Any]] = []
     if domains:
-        tools[0]["params"]["recipient_domain"] = domains[0]
+        tools.append(
+            {"tool_name": "fetch_email_events", "reason": "Confirm bounce or delivery patterns", "params": {"recipient_domain": domains[0]}}
+        )
         tools.append(
             {"tool_name": "dns_email_auth_check", "reason": "Check SPF/DKIM/DMARC presence", "params": {"domain": domains[0]}}
         )
+    else:
+        tools.append({"tool_name": "fetch_email_events", "reason": "Confirm bounce or delivery patterns", "params": {}})
     return tools
 
 
@@ -109,7 +179,6 @@ def _build_draft_reply(domains: List[str], severity: str) -> Dict[str, str]:
     subject = f"Quick update on your report{domain_note}"
     body_lines = [
         "Thanks for letting us know. We are reviewing the issue now.",
-        f"Severity noted as {severity}.",
         "To help us investigate, could you share:",
         "- Impacted time window (UTC)",
         "- Affected users/recipients and examples",
@@ -152,6 +221,10 @@ def _enrich_from_heuristic(text: str, payload: Dict[str, Any], metadata: Dict[st
         payload["time_window"].get("start") is None and payload["time_window"].get("end") is None
     ):
         payload["time_window"] = parse_time_window(text)
+    if not payload.get("reported_time_window"):
+        payload["reported_time_window"] = base.get("reported_time_window", {})
+    if not payload.get("time_ambiguity"):
+        payload["time_ambiguity"] = base.get("time_ambiguity", "missing_date")
     return payload
 
 
@@ -160,12 +233,17 @@ def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     case_type = _infer_case_type(text)
     severity = _infer_severity(text)
     tenant_hint = metadata.get("tenant") or metadata.get("customer") or ""
-    time_window = parse_time_window(text)
+    time_fields = _extract_time_fields(text)
+    time_window = time_fields["time_window"]
+    reported_time_window = time_fields["reported_time_window"]
+    time_ambiguity = time_fields["time_ambiguity"]
 
     return {
         "case_type": case_type,
         "severity": severity,
         "time_window": time_window,
+        "reported_time_window": reported_time_window,
+        "time_ambiguity": time_ambiguity,
         "scope": {
             "affected_tenants": [tenant_hint] if tenant_hint else [],
             "affected_users": [],
@@ -176,7 +254,7 @@ def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         },
         "symptoms": [text[:200]],
         "examples": [],
-        "missing_info_questions": _build_missing_questions(domains),
+        "missing_info_questions": _build_missing_questions(domains, reported_time_window, time_ambiguity),
         "suggested_tools": _suggest_tools(domains),
         "draft_customer_reply": _build_draft_reply(domains, severity),
     }
@@ -240,6 +318,11 @@ def _triage_heuristic(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         payload.setdefault("suggested_tools", [])
         payload.setdefault("missing_info_questions", [])
         payload.setdefault("symptoms", [])
+        payload.setdefault(
+            "reported_time_window",
+            {"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": 0.1},
+        )
+        payload.setdefault("time_ambiguity", "missing_date")
         return payload
 
     triage_payload = validate_with_retry(triage_payload, "triage.schema.json", fixer=_fix)
@@ -282,6 +365,11 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
                 payload.setdefault("missing_info_questions", [])
                 payload.setdefault("symptoms", [])
                 payload.setdefault("time_window", {"start": None, "end": None, "confidence": 0.1})
+                payload.setdefault(
+                    "reported_time_window",
+                    {"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": 0.1},
+                )
+                payload.setdefault("time_ambiguity", "missing_date")
                 payload.setdefault("scope", {}).setdefault("notes", "")
                 dcr = payload.setdefault("draft_customer_reply", {})
                 dcr["subject"] = dcr.get("subject") or ""

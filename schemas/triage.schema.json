@@ -7,6 +7,8 @@
     "case_type",
     "severity",
     "time_window",
+    "reported_time_window",
+    "time_ambiguity",
     "scope",
     "symptoms",
     "examples",
@@ -23,12 +25,29 @@
         "ui_bug",
         "data_import",
         "access_permissions",
+        "auth_access",
         "unknown"
       ]
     },
     "severity": {
       "type": "string",
       "enum": ["critical", "high", "medium", "low"]
+    },
+    "reported_time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw_text", "timezone", "has_date", "has_only_clock_time", "confidence"],
+      "properties": {
+        "raw_text": { "type": ["string", "null"] },
+        "timezone": { "type": ["string", "null"] },
+        "has_date": { "type": "boolean" },
+        "has_only_clock_time": { "type": "boolean" },
+        "confidence": { "type": "number", "minimum": 0.0 }
+      }
+    },
+    "time_ambiguity": {
+      "type": "string",
+      "enum": ["none", "missing_date", "missing_timezone", "relative_ambiguous"]
     },
     "time_window": {
       "type": "object",

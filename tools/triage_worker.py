@@ -39,6 +39,20 @@ def _backoff_seconds(retry_count: int) -> int:
     return min(int(base * (2**retry_count)), max_wait)
 
 
+def _derive_query_time_window(triage_result: Dict[str, Any]) -> Dict[str, Any]:
+    tw = triage_result.get("time_window") or {}
+    start = tw.get("start")
+    end = tw.get("end")
+    if start or end:
+        return {"start": start, "end": end, "reason": "triage_time_window"}
+    now = datetime.now(timezone.utc)
+    return {
+        "start": (now - timedelta(hours=24)).isoformat().replace("+00:00", "Z"),
+        "end": now.isoformat().replace("+00:00", "Z"),
+        "reason": "default_no_date",
+    }
+
+
 def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
     mode = config.TOOL_SELECT_MODE
     tools: List[Dict[str, Any]] = []
@@ -65,6 +79,8 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
         elif case_type == "integration":
             tools.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
         elif case_type == "ui_bug":
+            tools.append({"name": "fetch_app_events_sample", "params": {}})
+        elif case_type == "auth_access":
             tools.append({"name": "fetch_app_events_sample", "params": {}})
     return tools
 
@@ -97,12 +113,19 @@ def process_once(processor_id: str) -> bool:
         triage_result = triage(text, metadata=metadata)
         elapsed = time.perf_counter() - start
         meta = triage_result.pop("_meta", {})
+        query_tw = _derive_query_time_window(triage_result)
 
         evidence_bundles = []
         evidence_sources_run = []
         for tool in _select_tools(triage_result):
             try:
-                bundle = registry.run_tool(tool["name"], tool.get("params"))
+                params = tool.get("params") or {}
+                params.setdefault("start", query_tw.get("start"))
+                params.setdefault("end", query_tw.get("end"))
+                bundle = registry.run_tool(tool["name"], params)
+                if "metadata" not in bundle:
+                    bundle["metadata"] = {}
+                bundle["metadata"]["query_time_window_reason"] = query_tw.get("reason")
                 evidence_bundles.append(bundle)
                 evidence_sources_run.append(tool["name"])
             except Exception as exc:
