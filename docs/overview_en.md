@@ -26,3 +26,6 @@ Important files
 - `tools/run_learning_cycle.py` — nightly learning batch.
 - `docs/specs/FEEDBACK_LOOP.md` — IMAP closed-loop design.
 - `docs/specs/DYNAMIC_FEW_SHOT.md` — few-shot/RAG triage design.
+
+Link to this project
+- Support-triage-llm: https://github.com/Alleyfoo/Support-triage-llm
