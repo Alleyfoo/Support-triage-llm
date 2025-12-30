@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aurora Gadgets Chat Demo</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f7fb;
+            --surface: #ffffff;
+            --accent: #0057d9;
+            --accent-light: #e1ecff;
+            --text: #1b1f24;
+            --muted: #6b7280;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 32px;
+        }
+        .demo-shell {
+            width: min(1080px, 100%);
+            display: grid;
+            gap: 24px;
+        }
+        header {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+        header p {
+            margin: 8px 0 0 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .demo-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+        .hotkey-panel, .chat-panel {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .chat-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .chat-actions button {
+            border: 1px solid #d0d7ec;
+            border-radius: 999px;
+            background: #ffffff;
+            color: var(--accent);
+            font-weight: 600;
+            padding: 10px 18px;
+            cursor: pointer;
+            transition: box-shadow 120ms ease, transform 120ms ease;
+        }
+        .chat-actions button:hover {
+            box-shadow: 0 10px 24px rgba(0, 87, 217, 0.18);
+            transform: translateY(-1px);
+        }
+        .chat-actions .hint {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .hotkey-panel h2, .chat-panel h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        .hotkey-panel p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .hotkey-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        button.hotkey {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: var(--accent-light);
+            color: var(--text);
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 120ms ease, box-shadow 120ms ease;
+        }
+        button.hotkey span {
+            font-weight: 400;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        button.hotkey:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(0, 87, 217, 0.18);
+        }
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #d4dcff;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .chat-log {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #f8faff;
+        }
+        .msg {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .msg.user {
+            margin-left: auto;
+            background: var(--accent);
+            color: #ffffff;
+        }
+        .msg.bot {
+            margin-right: auto;
+            background: #ffffff;
+            border: 1px solid #e1e7ff;
+        }
+        .chat-input {
+            border-top: 1px solid #d4dcff;
+            padding: 16px 20px;
+            background: #ffffff;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .chat-input input {
+            flex: 1;
+            border-radius: 999px;
+            border: 1px solid #d0d7ec;
+            padding: 12px 18px;
+            font-size: 1rem;
+            color: var(--muted);
+        }
+        .chat-input button {
+            border-radius: 999px;
+            border: none;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        @media (max-width: 960px) {
+            body {
+                padding: 16px;
+            }
+            .demo-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-shell">
+        <header>
+            <h1>Aurora Gadgets Chat Experience</h1>
+            <p>
+                This mockup demonstrates how the upcoming chat assistant can surface grounded answers
+                from the existing knowledge base. Select any quick reply to preview the pre-recorded
+                response that the Ollama-backed bot will deliver in the full implementation.
+            </p>
+        </header>
+        <div class="demo-layout">
+            <section class="hotkey-panel">
+                <h2>Quick Answers</h2>
+                <p>Tap a hotkey to replay one of the top customer questions.</p>
+                <div class="hotkey-buttons" id="hotkey-buttons"></div>
+            </section>
+            <section class="chat-panel">
+                <h2>Conversation</h2>
+                <div class="chat-actions">
+                    <button type="button" id="load-transcript">Load Latest Transcript</button>
+                    <p class="hint">Reads `data/chat_web_transcript.jsonl` written by the dispatcher demo.</p>
+                </div>
+                <div class="chat-window">
+                    <div class="chat-log" id="chat-log"></div>
+                    <div class="chat-input">
+                        <input type="text" placeholder="Type your own question (demo replies are pre-recorded)" disabled>
+                        <button type="button" disabled>Send</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script>
+        const TRANSCRIPT_URL = '../data/chat_web_transcript.jsonl';
+        const demoHotkeys = [
+            {
+                id: "founded",
+                label: "Founded Year",
+                prompt: "When was Aurora Gadgets founded?",
+                answer: "Aurora Gadgets was founded in 1990 and has been supporting customers ever since."
+            },
+            {
+                id: "hq",
+                label: "Headquarters",
+                prompt: "Where are you headquartered?",
+                answer: "Our headquarters is located in Helsinki, Finland."
+            },
+            {
+                id: "hours",
+                label: "Support Hours",
+                prompt: "What are your support hours?",
+                answer: "Our support team is available Monday to Friday from 09:00 to 17:00 EET."
+            },
+            {
+                id: "warranty",
+                label: "Warranty",
+                prompt: "Can you explain the warranty policy?",
+                answer: "Every Aurora device is covered by a two-year warranty that starts on the delivery date."
+            },
+            {
+                id: "returns",
+                label: "Returns",
+                prompt: "How do returns work?",
+                answer: "You can return unused products within 30 days for a full refund."
+            },
+            {
+                id: "shipping",
+                label: "Shipping Times",
+                prompt: "How long does shipping take?",
+                answer: "Orders usually arrive within 5 to 7 business days worldwide."
+            },
+            {
+                id: "loyalty",
+                label: "Loyalty Program",
+                prompt: "Tell me about your loyalty program.",
+                answer: "Aurora Rewards gives you points on every purchase along with member perks."
+            },
+            {
+                id: "contact",
+                label: "Contact",
+                prompt: "How do I reach support?",
+                answer: "You can write to support@auroragadgets.example and the team will follow up quickly."
+            },
+            {
+                id: "premium",
+                label: "Premium Support",
+                prompt: "Do you offer premium support?",
+                answer: "Business customers can opt into premium support with a 4-hour service level."
+            },
+            {
+                id: "keycode",
+                label: "Key Code",
+                prompt: "What happens when I share key code AG-445?",
+                answer: "Key code AG-445 confirms your warranty details so we can reference the two-year coverage."
+            }
+        ];
+
+        const chatLog = document.getElementById("chat-log");
+        const hotkeyContainer = document.getElementById("hotkey-buttons");
+        const transcriptButton = document.getElementById("load-transcript");
+
+        function appendMessage(role, text) {
+            const bubble = document.createElement("div");
+            bubble.classList.add("msg", role === "user" ? "user" : "bot");
+            bubble.textContent = text;
+            chatLog.appendChild(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+                function renderTranscript(entries) {
+            chatLog.innerHTML = '';
+            if (!entries.length) {
+                appendMessage('bot', 'Transcript is empty. Run the worker and dispatcher to generate replies.');
+                return;
+            }
+            entries.forEach((entry) => {
+                const payload = entry.response || {};
+                const content = payload.content || '[empty response]';
+                appendMessage('bot', content);
+            });
+        }
+
+        async function loadTranscript() {
+            try {
+                const response = await fetch(`${TRANSCRIPT_URL}?t=${Date.now()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const raw = await response.text();
+                const lines = raw.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+                const entries = lines
+                    .map((line) => {
+                        try {
+                            return JSON.parse(line);
+                        } catch (error) {
+                            console.warn('Invalid transcript line', line);
+                            return null;
+                        }
+                    })
+                    .filter(Boolean);
+                renderTranscript(entries);
+            } catch (error) {
+                console.error('Failed to load transcript', error);
+                appendMessage('bot', 'Unable to load transcript. Ensure the dispatcher has written data/chat_web_transcript.jsonl.');
+            }
+        }
+        function playDemoEntry(entry) {
+            appendMessage("user", entry.prompt);
+            setTimeout(() => {
+                appendMessage("bot", entry.answer);
+            }, 320);
+        }
+
+        demoHotkeys.forEach((entry, index) => {
+            const button = document.createElement("button");
+            button.className = "hotkey";
+            button.type = "button";
+            button.dataset.entryId = entry.id;
+            button.innerHTML = `${index + 1}. ${entry.label}<span>${entry.prompt}</span>`;
+            button.addEventListener("click", () => playDemoEntry(entry));
+            hotkeyContainer.appendChild(button);
+        });
+
+        transcriptButton.addEventListener("click", loadTranscript);
+
+        appendMessage(
+            "bot",
+            "Hi there! Pick any quick answer on the left to preview how the chat assistant will respond with Ollama."
+        );
+    </script>
+</body>
+</html>
+
+

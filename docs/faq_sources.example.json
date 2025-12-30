@@ -1,0 +1,13 @@
+{
+  "output": "data/live_faq.xlsx",
+  "diff": "data/live_faq.diff.json",
+  "sources": [
+    {
+      "type": "html-table",
+      "location": "https://example.com/faq",
+      "key_column": "Key",
+      "value_column": "Value"
+    }
+  ]
+}
+

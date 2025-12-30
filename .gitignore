@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+data/pipeline_history.xlsx
+.venv/
+notebooks/.ipynb_checkpoints/
+data/email_queue.xlsx
+data/benchmark_report.xlsx
+data/benchmark_log.csv
+data/ollama_direct_benchmark.xlsx
+data/ollama_direct_benchmark_log.csv
+data/drafts_sent_log.csv
+data/approved_sent_log.csv
+
+# Data artifacts (ignore entire data directory; tracked samples will move elsewhere)
+data/**
+!data/.gitkeep
+notebooks/data/
+.env

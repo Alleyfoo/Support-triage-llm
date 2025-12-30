@@ -1,0 +1,7 @@
+{
+  "name": "slm-Cleanroom",
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  }
+}

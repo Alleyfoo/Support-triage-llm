@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+langid
+click
+pandas
+openpyxl
+huggingface_hub
+streamlit
+streamlit-autorefresh
