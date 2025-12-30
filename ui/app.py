@@ -127,8 +127,9 @@ options = {f"#{row.id} - {row.status} - {row.get('payload', '')[:40]}": row.id f
 selected_label = st.selectbox("Select a case", list(options.keys()))
 row_id = options[selected_label]
 row = cases_df[cases_df["id"] == row_id].iloc[0].to_dict()
+case_id = row.get("case_id") or row_id
 
-st.markdown(f"**Case ID:** {row_id} | **Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
+st.markdown(f"**Case ID:** {case_id} | **Status:** {row.get('status', 'unknown')} | **Conversation:** {row.get('conversation_id','')} | **Processor:** {row.get('processor_id','')}")
 
 with st.expander("Original text"):
     redacted = row.get("redacted_payload") or row.get("payload", "")
@@ -209,6 +210,7 @@ with tab2:
 
 if st.button("Export report package", use_container_width=True):
     export = {
+        "case_id": case_id,
         "row": row,
         "triage": triage_json,
         "evidence": row.get("evidence_json"),

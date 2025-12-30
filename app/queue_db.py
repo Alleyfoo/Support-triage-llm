@@ -14,6 +14,7 @@ DB_PATH = Path(config.DB_PATH)
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id TEXT,
     message_id TEXT UNIQUE,
     conversation_id TEXT,
     end_user_handle TEXT,
@@ -59,6 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_history_conversation ON conversation_history(conv
 """
 
 ALLOWED_UPDATE_FIELDS = {
+    "case_id",
     "message_id",
     "conversation_id",
     "end_user_handle",
@@ -130,6 +132,7 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     cursor.execute("PRAGMA table_info(queue)")
     existing = {row["name"] for row in cursor.fetchall()}
     desired = {
+        "case_id": "TEXT",
         "triage_json": "TEXT",
         "draft_customer_reply_subject": "TEXT",
         "draft_customer_reply_body": "TEXT",
@@ -160,9 +163,11 @@ def insert_message(payload: Dict[str, Any]) -> int:
         cursor = conn.cursor()
         now = _now_iso()
         message_id = payload.get("message_id") or str(uuid4())
+        case_id = payload.get("case_id") or message_id
         cursor.execute(
             """
             INSERT INTO queue (
+                case_id,
                 message_id,
                 conversation_id,
                 end_user_handle,
@@ -177,9 +182,10 @@ def insert_message(payload: Dict[str, Any]) -> int:
                 delivery_status,
                 ingest_signature,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
+                case_id,
                 message_id,
                 payload.get("conversation_id") or "",
                 payload.get("end_user_handle") or "",
