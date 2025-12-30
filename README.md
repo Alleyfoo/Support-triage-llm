@@ -11,6 +11,8 @@ Services:
 - `worker` — `tools/triage_worker.py --watch` writes triage JSON + draft to SQLite
 - `ui` — Streamlit review console for triage + drafts
 - `ollama` — local model endpoint (used when TRIAGE_MODE=llm)
+- Retention: `tools/retention.py` runs on container start (set `RETENTION_PURGE_DAYS`/`RETENTION_SCRUB_DAYS` in `.env`)
+- UI auth: set `STREAMLIT_AUTH_USER`/`STREAMLIT_AUTH_PASS` to gate the console
 
 API surfaces:
 - Primary: `/triage/*` (current demo path)

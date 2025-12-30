@@ -88,6 +88,7 @@ def enqueue_chat(payload: ChatEnqueueRequest) -> Dict[str, int]:
         "channel": payload.channel or "web_chat",
         "message_id": payload.message_id or "",
         "raw_payload": payload.raw_payload or "",
+        "case_id": payload.message_id or payload.conversation_id or "",
     }
     if USE_DB_QUEUE:
         queue_id = queue_db.insert_message(message)
@@ -103,6 +104,7 @@ def triage_run(req: TriageRequest) -> Dict[str, object]:
         req.text,
         metadata={"tenant": req.tenant, "source": req.source, "received_at": req.received_at},
     )
+    result["_case_id"] = req.source or ""
     return result
 
 
@@ -114,6 +116,7 @@ def triage_enqueue(req: TriageRequest) -> Dict[str, int]:
         "end_user_handle": req.tenant or "",
         "channel": "triage",
         "message_id": "",
+        "case_id": req.source or "",
         "raw_payload": "",
         "ingest_signature": "triage-api",
     }

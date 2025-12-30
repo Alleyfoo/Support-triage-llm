@@ -14,7 +14,7 @@ from uuid import uuid4
 from app import queue_db
 from app.triage_service import triage
 from app.validation import SchemaValidationError
-from app import report_service, config
+from app import report_service, config, metrics
 from tools import registry
 
 
@@ -122,6 +122,8 @@ def process_once(processor_id: str) -> bool:
             response_metadata={"triage_meta": meta, "report_meta": report_meta},
         )
         print(f"Processed triage for row {row['id']} status=triaged latency={elapsed:.3f}s")
+        metrics.incr("triage_success")
+        metrics.timing("triage_latency_s", elapsed)
     except SchemaValidationError as exc:
         elapsed = time.perf_counter() - start
         queue_db.update_row_status(
@@ -134,6 +136,7 @@ def process_once(processor_id: str) -> bool:
             response_metadata={"error": str(exc)},
         )
         print(f"Schema validation failed for row {row['id']}: {exc}")
+        metrics.incr("triage_failed_schema")
     except Exception as exc:  # pragma: no cover - defensive
         elapsed = time.perf_counter() - start
         queue_db.update_row_status(
@@ -146,6 +149,7 @@ def process_once(processor_id: str) -> bool:
             response_metadata={"error": str(exc)},
         )
         print(f"Failed triage for row {row['id']}: {exc}")
+        metrics.incr("triage_failed")
     return True
 
 
