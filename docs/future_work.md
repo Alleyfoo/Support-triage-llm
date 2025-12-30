@@ -11,6 +11,7 @@ This section captures the planned Support Ops features once the triage + evidenc
 - Suggest KB updates from recurring classifications and escalation drafts.
 - Export suggested articles with evidence references for CS/Docs to review.
 - Keep model prompts tied to KB version; store provenance.
+- Placeholder doc: `docs/kb_pipeline.md`
 
 ## Metrics & Observability
 - Core metrics: time-to-first-signal, reopen rate, bounce rate per domain, tool success rate.

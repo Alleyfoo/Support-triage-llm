@@ -11,6 +11,7 @@ from . import config, queue_db
 from .pipeline import run_pipeline
 from .schemas import ChatEnqueueRequest, EmailRequest, EmailResponse, TriageRequest
 from .triage_service import triage
+from .metrics_api import router as metrics_router
 from tools import chat_ingest
 
 app = FastAPI()
@@ -122,3 +123,6 @@ def triage_enqueue(req: TriageRequest) -> Dict[str, int]:
     }
     queue_id = queue_db.insert_message(message)
     return {"enqueued": 1, "queue_id": queue_id}
+
+
+app.include_router(metrics_router)

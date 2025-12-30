@@ -143,6 +143,7 @@ def _generate_report_template(triage_json: Dict[str, Any], evidence_bundles: Lis
         "prompt_version": PROMPT_VERSION_REPORT,
         "report_mode": "template",
         "claim_warnings": warnings,
+        "case_id": triage_json.get("_meta", {}).get("case_id"),
     }
     return report
 
@@ -184,6 +185,7 @@ def _generate_report_llm(triage_json: Dict[str, Any], evidence_bundles: List[Dic
                     "llm_latency_ms": int((time.perf_counter() - start) * 1000),
                     "llm_attempts": attempts,
                     "claim_warnings": warnings,
+                    "case_id": triage_json.get("_meta", {}).get("case_id"),
                 }
             )
             return parsed

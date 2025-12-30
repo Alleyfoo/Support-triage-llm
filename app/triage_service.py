@@ -238,5 +238,6 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
     meta = triage_payload.get("_meta", {})
     meta["redaction_applied"] = redaction["redaction_applied"]
     meta["redacted_text"] = redaction["redacted_text"]
+    meta["case_id"] = metadata.get("case_id")
     triage_payload["_meta"] = meta
     return triage_payload
