@@ -7,3 +7,4 @@ openpyxl
 huggingface_hub
 streamlit
 streamlit-autorefresh
+jsonschema
