@@ -23,7 +23,7 @@ One-run demo (tests + triage worker + inbox preview):
 ```
 python tools/one_run.py
 # LLM mode and ensure model is pulled locally
-python tools/one_run.py --triage-mode llm --ollama-model llama3.2:3b --ollama-url http://localhost:11434 --ensure-ollama-model
+python tools/one_run.py --triage-mode llm --ollama-model llama3.1:8b --ollama-url http://localhost:11434 --ensure-ollama-model
 # Exports live under data/demo_run/<ts>/ with model slug embedded in filenames
 # If you want to run the full pytest suite: python tools/one_run.py --tests all
 ```

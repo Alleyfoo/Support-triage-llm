@@ -165,8 +165,17 @@ def _call_ollama(prompt: str) -> str:
     data = json.dumps(payload).encode("utf-8")
     url = config.OLLAMA_HOST.rstrip("/") + "/api/chat"
     request = Request(url, data=data, headers={"Content-Type": "application/json"})
-    with urlopen(request, timeout=config.OLLAMA_TIMEOUT) as response:  # nosec - local inference endpoint
-        body = response.read()
+    try:
+        with urlopen(request, timeout=config.OLLAMA_TIMEOUT) as response:  # nosec - local inference endpoint
+            body = response.read()
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise RuntimeError(
+                f"Ollama 404 for model '{config.OLLAMA_MODEL}' at {config.OLLAMA_HOST}. "
+                "Ensure the model name is correct and pulled (e.g., `ollama pull llama3.1:8b`) "
+                "or set OLLAMA_URL/OLLAMA_MODEL appropriately."
+            ) from exc
+        raise
     parsed = json.loads(body)
     message = parsed.get("message", {})
     content = message.get("content")
