@@ -16,6 +16,7 @@ SCENARIOS = [
     {"name": "multiple_domains", "case_type": "email_delivery", "expect_domains": True, "domains_count": 2},
     {"name": "single_user", "case_type": "email_delivery", "expect_domains": True},
     {"name": "angry_vague", "case_type": "unknown", "expect_domains": False},
+    {"name": "angry_rant", "case_type": "unknown", "expect_domains": False},
     {"name": "contains_pii", "case_type": "email_delivery", "expect_domains": True, "check_redaction": True},
     {"name": "forwarded_thread", "case_type": "email_delivery", "expect_domains": True},
     {"name": "ui_button", "case_type": "ui_bug", "expect_domains": False},
