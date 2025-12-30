@@ -10,3 +10,7 @@ Contents:
 Notes:
 - Keep entries synthetic and PII-free.
 - Align time windows/tenants between emails and events to make end-to-end tests deterministic.
+
+CLI helper:
+- `python tools/sample_data_smoke.py --summary` shows what’s available.
+- `python tools/sample_data_smoke.py --init-queue --queue data/email_queue.xlsx --overwrite` seeds a queue workbook from the fake emails for quick pipeline smoke runs.
