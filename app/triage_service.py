@@ -11,6 +11,9 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from . import config
+from .example_retriever import ExampleRetriever
+from .vector_store import get_store as get_vector_store
+from tools.registry import REGISTRY
 from .redaction import redact
 from .validation import SchemaValidationError, validate_payload, validate_with_retry
 from .time_window import parse_time_window, ISO_PATTERN
@@ -48,6 +51,7 @@ ALLOWED_TOP_KEYS = {
     "draft_customer_reply",
 }
 
+_EXAMPLE_RETRIEVER = ExampleRetriever(Path(config.GOLDEN_DATASET_PATH), max_examples=config.FEW_SHOT_EXAMPLES)
 
 def _infer_case_type(text: str) -> str:
     lower = text.lower()
@@ -338,9 +342,46 @@ def _triage_heuristic(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     return triage_payload
 
 
+def _format_examples(examples: List[Dict[str, Any]]) -> str:
+    if not examples:
+        return ""
+    blocks = []
+    for idx, ex in enumerate(examples, 1):
+        inp = ex.get("input_symptoms") or ex.get("input_redacted") or ""
+        triage = ex.get("perfect_triage") or ex.get("triage") or {}
+        blocks.append(
+            "Example {idx}\nInput: {user}\nOutput: {triage}".format(
+                idx=idx,
+                user=inp,
+                triage=json.dumps(triage, ensure_ascii=False),
+            )
+        )
+    return "You are a support triage assistant. Use the following examples for reference:\n" + "\n\n".join(blocks) + "\n\n"
+
+
+def _format_tools() -> str:
+    entries = []
+    for name, tool in REGISTRY.items():
+        doc = (tool.__doc__ or "").strip().splitlines()[0] if hasattr(tool, "__doc__") else ""
+        entries.append(f"- {name}: {doc}")
+    if not entries:
+        return ""
+    return (
+        "You have access to the following tools to gather evidence. "
+        "Suggest the most relevant ones in the 'suggested_tools' JSON field:\n"
+        + "\n".join(entries)
+        + "\n\n"
+    )
+
+
 def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    store = get_vector_store()
+    fewshot = store.retrieve(text, k=config.FEW_SHOT_EXAMPLES)
+    prompt_prefix = _format_examples(fewshot) + _format_tools()
+
     prompt_base = (
-        "Customer message:\n"
+        prompt_prefix
+        + "Customer message:\n"
         f"{text}\n\n"
         "Return ONLY a JSON object matching this schema (no $schema/title keys, no prose, no schema echoes):\n"
         f"{SCHEMA_TEXT}\n"

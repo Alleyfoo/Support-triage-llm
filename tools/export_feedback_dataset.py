@@ -58,6 +58,29 @@ def _has_forbidden_keys(obj: Any) -> bool:
     return False
 
 
+def _is_high_quality(row: Dict[str, Any]) -> bool:
+    action = (row.get("review_action") or "").lower()
+    if action == "rewrite" and not (row.get("review_final_body") or row.get("review_final_subject")):
+        return False
+    if action not in {"approved", "escalate", "rewrite"}:
+        return False
+
+    try:
+        diff_body_ratio = float(row.get("diff_body_ratio") or 0.0)
+    except (TypeError, ValueError):
+        diff_body_ratio = 0.0
+    if diff_body_ratio <= 0.05:
+        return False
+
+    error_tags = _parse_json(row.get("error_tags")) or []
+    if isinstance(error_tags, str):
+        error_tags = [error_tags] if error_tags else []
+    if error_tags:
+        return False
+
+    return True
+
+
 def export_dataset(db_path: Path, out_path: Path, *, allow_dataset_export: bool = False) -> int:
     if not allow_dataset_export and os.environ.get("LEARNING_MODE", "").lower() != "dataset":
         print("Dataset export disabled. Set LEARNING_MODE=dataset or pass --enable-dataset-export.", file=sys.stderr)
@@ -76,6 +99,8 @@ def export_dataset(db_path: Path, out_path: Path, *, allow_dataset_export: bool 
     written = 0
     with out_path.open("w", encoding="utf-8") as f:
         for row in rows:
+            if not _is_high_quality(row):
+                continue
             triage = _parse_json(row.get("triage_json")) or {}
             evidence = _parse_json(row.get("evidence_json")) or []
             report = _parse_json(row.get("final_report_json")) or {}

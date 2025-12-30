@@ -4,3 +4,4 @@ pydantic
 pandas
 jsonschema
 streamlit
+schedule

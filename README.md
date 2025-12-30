@@ -27,3 +27,8 @@ python tools/one_run.py --triage-mode llm --ollama-model llama3.1:8b --ollama-ur
 # Exports live under data/demo_run/<ts>/ with model slug embedded in filenames
 # If you want to run the full pytest suite: python tools/one_run.py --tests all
 ```
+
+Supervisor (ingest → triage → draft sync → sent feedback → learning):
+```
+python tools/daemon.py
+```

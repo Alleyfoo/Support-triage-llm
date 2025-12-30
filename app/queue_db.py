@@ -58,6 +58,10 @@ CREATE TABLE IF NOT EXISTS queue (
     error_tags TEXT,
     diff_subject_ratio REAL,
     diff_body_ratio REAL,
+    sent_body TEXT,
+    edit_distance REAL,
+    feedback_source TEXT,
+    closed_loop_at TEXT,
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -127,6 +131,10 @@ ALLOWED_UPDATE_FIELDS = {
     "error_tags",
     "diff_subject_ratio",
     "diff_body_ratio",
+    "sent_body",
+    "edit_distance",
+    "feedback_source",
+    "closed_loop_at",
     "created_at",
 }
 
@@ -200,6 +208,10 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "error_tags": "TEXT",
         "diff_subject_ratio": "REAL",
         "diff_body_ratio": "REAL",
+        "sent_body": "TEXT",
+        "edit_distance": "REAL",
+        "feedback_source": "TEXT",
+        "closed_loop_at": "TEXT",
     }
     for name, col_type in desired.items():
         if name not in existing:

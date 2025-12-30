@@ -18,8 +18,8 @@ from app.validation import SchemaValidationError
 from app import report_service, config, metrics
 from tools import registry
 
-# Shared mapping for routing/metrics; keep in sync with _select_tools logic.
 EXPECTED_TOOLS_BY_CASE = {
+    # Legacy fallback when LLM does not suggest anything valid.
     "email_delivery": {"fetch_email_events_sample", "dns_email_auth_check_sample"},
     "integration": {"fetch_integration_events_sample"},
     "auth_access": {"fetch_app_events_sample"},
@@ -62,35 +62,30 @@ def _derive_query_time_window(triage_result: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
-    mode = config.TOOL_SELECT_MODE
-    tools: List[Dict[str, Any]] = []
+    suggested: List[Dict[str, Any]] = []
+    for suggestion in triage_result.get("suggested_tools") or []:
+        name = suggestion.get("tool_name")
+        params = suggestion.get("params") if isinstance(suggestion, dict) else {}
+        if name in registry.REGISTRY:
+            suggested.append({"name": name, "params": params})
+
+    if suggested:
+        return suggested
+
+    # Fallback: legacy heuristic mapping to avoid zero-evidence runs.
     case_type = triage_result.get("case_type", "")
     recipient_domains = triage_result.get("scope", {}).get("recipient_domains") or []
     primary_domain = recipient_domains[0] if recipient_domains else None
-
-    if mode in {"llm", "hybrid"}:
-        for suggestion in triage_result.get("suggested_tools") or []:
-            name = suggestion.get("tool_name")
-            params = suggestion.get("params") if isinstance(suggestion, dict) else {}
-            if name in registry.REGISTRY:
-                tools.append({"name": name, "params": params})
-        if mode == "llm" and tools:
-            return tools
-        if mode == "llm" and not tools:
-            mode = "rules"
-
-    if mode in {"rules", "hybrid"}:
-        if case_type == "email_delivery":
-            tools.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
-            if primary_domain:
-                tools.append({"name": "dns_email_auth_check_sample", "params": {"domain": primary_domain}})
-        elif case_type == "integration":
-            tools.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
-        elif case_type == "ui_bug":
-            tools.append({"name": "fetch_app_events_sample", "params": {}})
-        elif case_type == "auth_access":
-            tools.append({"name": "fetch_app_events_sample", "params": {}})
-    return tools
+    fallback: List[Dict[str, Any]] = []
+    if case_type == "email_delivery":
+        fallback.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
+        if primary_domain:
+            fallback.append({"name": "dns_email_auth_check_sample", "params": {"domain": primary_domain}})
+    elif case_type == "integration":
+        fallback.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
+    elif case_type in {"ui_bug", "auth_access"}:
+        fallback.append({"name": "fetch_app_events_sample", "params": {}})
+    return fallback
 
 
 def process_once(processor_id: str) -> bool:

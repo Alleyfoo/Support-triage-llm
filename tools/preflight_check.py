@@ -8,6 +8,7 @@ Exits non‑zero if any selected check fails.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -42,6 +43,37 @@ def check_ollama() -> List[str]:
             out.append(line)
     except Exception as exc:  # pragma: no cover
         ok, line = _result(False, f"Reach Ollama at {host}", str(exc))
+        out.append(line)
+    return out
+
+
+def check_embed_model() -> List[str]:
+    out: List[str] = []
+    host = os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
+    embed_model = os.environ.get("OLLAMA_EMBED_MODEL") or "nomic-embed-text"
+    backend = (os.environ.get("MODEL_BACKEND") or "").lower()
+    if backend and backend != "ollama":
+        ok, line = _result(True, f"MODEL_BACKEND={backend} (embed check skipped)")
+        out.append(line)
+        return out
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(host.rstrip("/") + "/api/tags", timeout=5) as resp:  # nosec - local
+            ok_http = 200 <= resp.status < 300
+            if not ok_http:
+                ok, line = _result(False, f"Embedding model {embed_model}", f"HTTP {resp.status}")
+                out.append(line)
+                return out
+            payload = json.loads(resp.read().decode("utf-8")) if hasattr(resp, "read") else {}
+            names = {m.get("name") for m in payload.get("models", [])} if isinstance(payload, dict) else set()
+            if embed_model in names:
+                ok, line = _result(True, f"Embedding model present: {embed_model}")
+            else:
+                ok, line = _result(False, f"Embedding model missing: {embed_model}", f"Pull with `ollama pull {embed_model}`")
+            out.append(line)
+    except Exception as exc:  # pragma: no cover
+        ok, line = _result(False, f"Embedding model {embed_model}", str(exc))
         out.append(line)
     return out
 
@@ -110,6 +142,7 @@ def main() -> None:
     ap.add_argument("--imap", action="store_true", help="Check IMAP env vars presence")
     ap.add_argument("--smtp", action="store_true", help="Check SMTP env vars presence")
     ap.add_argument("--paths", action="store_true", help="Check expected local paths exist")
+    ap.add_argument("--embedding", action="store_true", help="Check embedding model availability in Ollama")
     args = ap.parse_args()
 
     selected = args.all or not any(
@@ -119,6 +152,8 @@ def main() -> None:
     lines: List[str] = []
     if args.ollama or selected:
         lines.extend(check_ollama())
+    if args.embedding or selected:
+        lines.extend(check_embed_model())
     if args.knowledge or selected:
         lines.extend(check_knowledge_and_accounts())
     if args.imap or selected:
@@ -139,4 +174,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

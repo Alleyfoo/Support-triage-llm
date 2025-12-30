@@ -240,9 +240,6 @@ def load_knowledge(path: Optional[str] = None, *, force_refresh: bool = False) -
     if not isinstance(cached, dict):
         raise ValueError("Knowledge cache corrupted")
 
-    if "founded_year" not in cached:
-        raise ValueError("Knowledge template must include a 'founded_year' entry.")
-
     final_source = _KNOWLEDGE_CACHE.get("source") or source
     log_function_call(
         'load_knowledge',

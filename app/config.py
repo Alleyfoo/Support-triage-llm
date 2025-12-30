@@ -44,6 +44,7 @@ OLLAMA_MODEL = os.environ.get("MODEL_NAME") or os.environ.get("OLLAMA_MODEL")
 OLLAMA_HOST = os.environ.get("OLLAMA_URL") or os.environ.get("OLLAMA_HOST") or "http://127.0.0.1:11434"
 OLLAMA_TIMEOUT = _parse_float_default(60.0, "OLLAMA_TIMEOUT")
 OLLAMA_OPTIONS = os.environ.get("OLLAMA_OPTIONS")
+OLLAMA_EMBED_MODEL = os.environ.get("OLLAMA_EMBED_MODEL") or "nomic-embed-text"
 REQUIRE_API_KEY = (os.environ.get("REQUIRE_API_KEY") or "false").lower() == "true"
 INGEST_API_KEY: Optional[str] = _require_env("INGEST_API_KEY") if REQUIRE_API_KEY else os.environ.get("INGEST_API_KEY")
 KNOWLEDGE_TEMPLATE = os.environ.get(
@@ -71,6 +72,8 @@ ACCOUNT_DATA_PATH = os.environ.get(
 )
 
 DB_PATH = os.environ.get("DB_PATH") or os.environ.get("QUEUE_DB_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "queue.db")
+GOLDEN_DATASET_PATH = os.environ.get("GOLDEN_DATASET_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "learning" / "golden_dataset.jsonl")
+FEW_SHOT_EXAMPLES = _parse_int_default(3, "FEW_SHOT_EXAMPLES", "TRIAGE_FEW_SHOT_EXAMPLES")
 TRIAGE_MODE = (os.environ.get("TRIAGE_MODE") or "heuristic").lower()
 TOOL_SELECT_MODE = (os.environ.get("TOOL_SELECT_MODE") or "rules").lower()
 REPORT_MODE = (os.environ.get("REPORT_MODE") or "template").lower()

@@ -1,87 +1,58 @@
 version: "3.9"
 
 services:
-  api:
-    build: .
-    command: /bin/sh -c "python tools/retention.py && uvicorn app.server:app --host 0.0.0.0 --port 8000"
-    env_file:
-      - .env
-    environment:
-      USE_DB_QUEUE: "true"
-      DB_PATH: /data/queue.db
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-      REQUIRE_API_KEY: ${REQUIRE_API_KEY:-true}
-      INGEST_API_KEY: ${INGEST_API_KEY:-dev-api-key}
-    volumes:
-      - ./:/app
-      - queue-data:/data
-    ports:
-      - "8000:8000"
-    depends_on:
-      ollama:
-        condition: service_healthy
-    networks:
-      - internal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  worker:
-    build: .
-    command: /bin/sh -c "python tools/retention.py && python tools/triage_worker.py --watch --processor-id worker-1 --poll-interval 2"
-    env_file:
-      - .env
-    environment:
-      USE_DB_QUEUE: "true"
-      DB_PATH: /data/queue.db
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-    volumes:
-      - ./:/app
-      - queue-data:/data
-    depends_on:
-      api:
-        condition: service_healthy
-    networks:
-      - internal
-
-  ui:
-    build: .
-    command: streamlit run ui/app.py --server.port=8501 --server.address=0.0.0.0
-    env_file:
-      - .env
-    environment:
-      DB_PATH: /data/queue.db
-    volumes:
-      - ./:/app
-      - queue-data:/data
-    ports:
-      - "8501:8501"
-    depends_on:
-      api:
-        condition: service_healthy
-    networks:
-      - internal
-
+  # The Brain (Ollama)
   ollama:
     image: ollama/ollama:latest
-    expose:
-      - "11434"
     volumes:
       - ollama-models:/root/.ollama
+    # Uncomment for GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     networks:
       - internal
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+
+  # The Body (Daemon)
+  bot:
+    build: .
+    command: python tools/daemon.py
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/data/queue.db
+      - OLLAMA_HOST=http://ollama:11434
+      # Ensure these are set in .env for daemon ingest/sent sync:
+      # IMAP_HOST, IMAP_USERNAME, IMAP_PASSWORD
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # Optional dashboard (analytics/history)
+  dashboard:
+    build: .
+    command: streamlit run ui/monitor.py --server.port=8501
+    environment:
+      - DB_PATH=/data/queue.db
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8501:8501"
+    networks:
+      - internal
 
 networks:
   internal:
     driver: bridge
 
 volumes:
-  queue-data:
   ollama-models:
