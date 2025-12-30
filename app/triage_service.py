@@ -24,7 +24,7 @@ SCHEMA_TEXT = (Path(__file__).resolve().parents[1] / "schemas" / "triage.schema.
 
 def _infer_case_type(text: str) -> str:
     lower = text.lower()
-    if "webhook" in lower or "integration" in lower or "api" in lower:
+    if "webhook" in lower or "integration" in lower or "api" in lower or "sync" in lower or "connector" in lower:
         return "integration"
     if "bounce" in lower or "deliver" in lower or "email" in lower:
         return "email_delivery"

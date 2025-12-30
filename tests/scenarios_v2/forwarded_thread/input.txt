@@ -1,0 +1,13 @@
+---------- Forwarded message ----------
+From: ops@client.com
+To: support@ourco.com
+Subject: Re: Fwd: Delivery issue
+
+Hi, please see below. Actual problem: bounces to partner.com started today. Signature below.
+
+Best,
+Ops
+
+--
+Ops Team
+Client Corp

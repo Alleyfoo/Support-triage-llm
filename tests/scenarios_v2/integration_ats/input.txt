@@ -1,0 +1,1 @@
+"Our ATS sync stopped working. No candidates are coming through since last night. Token might have rotated."

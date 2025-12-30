@@ -1,0 +1,1 @@
+We send to @company.com and @partner.com. company.com is fine but partner.com bounces with 550.

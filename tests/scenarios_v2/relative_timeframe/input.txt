@@ -1,0 +1,1 @@
+"Deliveries failing since yesterday afternoon. Some send fine, others bounce."
