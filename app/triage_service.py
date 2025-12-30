@@ -120,6 +120,41 @@ def _build_draft_reply(domains: List[str], severity: str) -> Dict[str, str]:
     return {"subject": subject, "body": "\n".join(body_lines)}
 
 
+def _enrich_from_heuristic(text: str, payload: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Use heuristic defaults to backfill LLM outputs when they are sparse or missing critical fields.
+    """
+    base = _base_triage_payload(text, metadata)
+    # Backfill questions
+    if not payload.get("missing_info_questions"):
+        payload["missing_info_questions"] = base["missing_info_questions"]
+    # Backfill draft
+    dcr = payload.get("draft_customer_reply") or {}
+    if not dcr.get("subject") or not dcr.get("body"):
+        payload["draft_customer_reply"] = base["draft_customer_reply"]
+    # Backfill scope/domains
+    scope = payload.get("scope") or {}
+    if not scope.get("recipient_domains"):
+        scope["recipient_domains"] = base["scope"]["recipient_domains"]
+    if "notes" not in scope:
+        scope["notes"] = ""
+    payload["scope"] = scope
+    # Backfill symptoms/examples
+    if not payload.get("symptoms"):
+        payload["symptoms"] = base["symptoms"]
+    if not payload.get("examples"):
+        payload["examples"] = []
+    # Backfill case type if unknown
+    if payload.get("case_type") == "unknown" and base.get("case_type") != "unknown":
+        payload["case_type"] = base["case_type"]
+    # Backfill time window if missing
+    if not payload.get("time_window") or (
+        payload["time_window"].get("start") is None and payload["time_window"].get("end") is None
+    ):
+        payload["time_window"] = parse_time_window(text)
+    return payload
+
+
 def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     domains = _detect_domains(text)
     case_type = _infer_case_type(text)
@@ -255,10 +290,7 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
 
             parsed = validate_with_retry(parsed, "triage.schema.json", fixer=_fix)
             latency_ms = int((time.perf_counter() - start) * 1000)
-            if not parsed.get("time_window") or (
-                parsed["time_window"].get("start") is None and parsed["time_window"].get("end") is None
-            ):
-                parsed["time_window"] = parse_time_window(text)
+            parsed = _enrich_from_heuristic(text, parsed, metadata)
             parsed["_meta"] = {
                 "llm_model": config.OLLAMA_MODEL or "ollama",
                 "prompt_version": PROMPT_VERSION_LLM,
