@@ -12,6 +12,7 @@ Services:
 - `ui` — Streamlit review console for triage + drafts
 - `ollama` — local model endpoint (used when TRIAGE_MODE=llm)
 - Retention: `tools/retention.py` runs on container start (set `RETENTION_PURGE_DAYS`/`RETENTION_SCRUB_DAYS` in `.env`)
+- Idempotency/retries: ingestion hashes text+tenant to dedupe; worker retries with backoff then dead-letters after `MAX_RETRIES`
 - UI auth: set `STREAMLIT_AUTH_USER`/`STREAMLIT_AUTH_PASS` to gate the console
 
 API surfaces:

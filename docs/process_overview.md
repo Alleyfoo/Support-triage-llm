@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Process Overview: Privacy‑First Customer Service Email Assistant
 
 This document describes the end‑to‑end process, data handling principles, and controls for a privacy‑first assistant that uses a small/large language model (SLM/LLM) to pre‑read and draft answers for customer service emails.

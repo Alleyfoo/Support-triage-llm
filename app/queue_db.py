@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from . import config
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS queue (
     message_id TEXT UNIQUE,
     idempotency_key TEXT,
     retry_count INTEGER DEFAULT 0,
+    available_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     conversation_id TEXT,
     end_user_handle TEXT,
     channel TEXT DEFAULT 'web_chat',
@@ -66,6 +68,7 @@ ALLOWED_UPDATE_FIELDS = {
     "message_id",
     "idempotency_key",
     "retry_count",
+    "available_at",
     "conversation_id",
     "end_user_handle",
     "channel",
@@ -110,6 +113,14 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _compute_idempotency_key(payload: Dict[str, Any], created_at: str) -> str:
+    text = (payload.get("text") or payload.get("payload") or "").strip()
+    tenant = payload.get("end_user_handle") or payload.get("tenant") or payload.get("customer") or ""
+    bucket = created_at[:10]
+    raw = f"{tenant}|{text[:200]}|{bucket}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def get_connection() -> sqlite3.Connection:
     """Create a connection with sane defaults for concurrent access."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -139,6 +150,7 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "case_id": "TEXT",
         "idempotency_key": "TEXT",
         "retry_count": "INTEGER",
+        "available_at": "TEXT",
         "triage_json": "TEXT",
         "draft_customer_reply_subject": "TEXT",
         "draft_customer_reply_body": "TEXT",
@@ -161,8 +173,33 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
             cursor.execute(f"ALTER TABLE queue ADD COLUMN {name} {col_type}")
 
 
-def insert_message(payload: Dict[str, Any]) -> int:
-    """Insert a new inbound message and return its row id."""
+def get_by_idempotency(idempotency_key: str) -> Optional[Dict[str, Any]]:
+    """Return the most recent row matching an idempotency key."""
+    if not idempotency_key:
+        return None
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT * FROM queue
+            WHERE idempotency_key = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (idempotency_key,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return _row_to_dict(row)
+    finally:
+        conn.close()
+
+
+def insert_message(payload: Dict[str, Any]) -> Tuple[int, bool]:
+    """Insert a new inbound message and return (row id, created?)."""
     init_db()
     conn = get_connection()
     try:
@@ -170,12 +207,19 @@ def insert_message(payload: Dict[str, Any]) -> int:
         now = _now_iso()
         message_id = payload.get("message_id") or str(uuid4())
         case_id = payload.get("case_id") or message_id
+        idempotency_key = payload.get("idempotency_key") or _compute_idempotency_key(payload, now)
+
+        existing = get_by_idempotency(idempotency_key)
+        if existing and existing.get("status") != "dead_letter":
+            return int(existing["id"]), False
+
         cursor.execute(
             """
             INSERT INTO queue (
                 case_id,
                 message_id,
                 idempotency_key,
+                available_at,
                 conversation_id,
                 end_user_handle,
                 channel,
@@ -189,12 +233,13 @@ def insert_message(payload: Dict[str, Any]) -> int:
                 delivery_status,
                 ingest_signature,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 case_id,
                 message_id,
-                payload.get("idempotency_key") or "",
+                idempotency_key,
+                now,
                 payload.get("conversation_id") or "",
                 payload.get("end_user_handle") or "",
                 payload.get("channel") or "web_chat",
@@ -211,7 +256,7 @@ def insert_message(payload: Dict[str, Any]) -> int:
             ),
         )
         conn.commit()
-        return int(cursor.lastrowid)
+        return int(cursor.lastrowid), True
     finally:
         conn.close()
 
@@ -231,7 +276,13 @@ def claim_row(processor_id: str) -> Optional[Dict[str, Any]]:
         conn.execute("BEGIN IMMEDIATE")
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM queue WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1"
+            """
+            SELECT * FROM queue
+            WHERE status = 'queued' AND (available_at IS NULL OR available_at <= ?)
+            ORDER BY created_at ASC
+            LIMIT 1
+            """,
+            (_now_iso(),),
         )
         row = cursor.fetchone()
         if not row:

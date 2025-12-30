@@ -23,12 +23,13 @@ def parse_time_window(text: str) -> Dict[str, object]:
             confidence = 0.8
         except Exception:
             pass
-    elif "yesterday" in lower:
-        start = (now - timedelta(days=1)).isoformat()
+    elif "yesterday" in lower or "last night" in lower:
+        # Relative hints stay null to avoid inventing timestamps; confidence remains low.
+        start = None
         end = None
         confidence = 0.3
     elif "this morning" in lower or "today" in lower:
-        start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        start = None
         end = None
         confidence = 0.3
 

@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 > **Migration Note (2025-09-29):** The project is pivoting toward a queue-driven chatbot. See `docs/chat_queue_design.md` and `docs/chat_migration_plan.md` for the in-progress architecture while this document is rewritten for chat workflows.
 
 ## 1. Purpose & Scope
@@ -17,7 +19,7 @@
 - Analytics dashboards beyond the verification metrics already returned.
 
 ## 2. Functional Requirements
-- `run_pipeline(email_text, metadata=None)` → returns:
+- `run_pipeline(email_text, metadata=None)` â†’ returns:
   ```json
   {
     "reply": "<cleaned email draft>",
@@ -72,7 +74,7 @@ Tests target the deterministic behaviour (no llama.cpp dependency) and validate 
 ## 5. Knowledge Base
 - Parsed from `docs/customer_service_template.md`.
 - `KNOWLEDGE_SOURCE` can point to a Markdown/CSV/Excel file or HTTPS endpoint for live FAQ data; results are cached for `KNOWLEDGE_CACHE_TTL` seconds (set to `0` to refresh every call) and fall back to the template if unreachable.
-- Stored as key/value pairs (e.g. `warranty_policy: …`).
+- Stored as key/value pairs (e.g. `warranty_policy: â€¦`).
 - Loader must raise if required entries referenced by the regression fixtures are missing.
 - Knowledge entries drive both the enrichment step (facts inserted into the cleaned email) and the verification pass.
 
@@ -100,7 +102,7 @@ Tests target the deterministic behaviour (no llama.cpp dependency) and validate 
     ```
     The `<JSON>` / `</JSON>` sentinels guarantee the response contains a parseable block with the cleaned draft and `answers` map.
 - Fallback stub constructs the cleaned draft by combining templated sentences per expected knowledge key so verification can match exact canonical values.
-- Output structure must always include `reply` (cleaned draft string) and `answers` (dict of key→canonical value).
+- Output structure must always include `reply` (cleaned draft string) and `answers` (dict of keyâ†’canonical value).
 
 ## 7. Verification
 - `evaluate_reply(email_text, reply_text, expected_keys, knowledge)` computes:
@@ -135,11 +137,11 @@ Tests target the deterministic behaviour (no llama.cpp dependency) and validate 
 
 ## 11. Operational Resilience & Monitoring
 - Two-node deployment: run the cleaner + Ollama on redundant Mac Minis (or comparable hosts) with mutual health checks. Only the primary drains the queue; if it fails, the standby promotes itself and resumes polling.
-- Queue-driven backpressure: treat the email inbox or message bus as the source of truth. If all workers stop, messages remain queued until capacity returns�no emails are dropped.
+- Queue-driven backpressure: treat the email inbox or message bus as the source of truth. If all workers stop, messages remain queued until capacity returns—no emails are dropped.
 - Health polling: schedule a 5-minute cron (or managed job) that hits `/healthz`, confirms the Ollama container responds, and verifies that recent jobs completed with `score == 1.0`. Escalate to on-call and pause queue draining on repeated failures.
 - Quality gates: enforce regression-style spot checks after knowledge updates. The deterministic tests in `tests/` plus a curated template email with expected score `1.0` ensure policy changes don't regress coverage.
 - Stateful data: the pipeline is intended to be stateless. The intake email, intermediate prompt, and final reply should remain in memory only. Logs written to `PIPELINE_LOG_PATH` are optional; if GDPR policy forbids storage, disable the file or redirect it to encrypted archival storage with rotation and automatic purging.
-- Secrets & access: restrict `data/` and `docs/` directories to the service account. Secrets (regular/secret keys, dynamic FAQ) are loaded from Excel or network shares�ensure those shares enforce least-privilege and encrypt at rest.
+- Secrets & access: restrict `data/` and `docs/` directories to the service account. Secrets (regular/secret keys, dynamic FAQ) are loaded from Excel or network shares—ensure those shares enforce least-privilege and encrypt at rest.
 - Disaster recovery: document the steps to recreate a node (clone repo, restore `.env`, reseed knowledge sources). Automated infra-as-code (e.g., Ansible, Terraform) can rebuild a node in minutes.
 
 ## 12. Security & Compliance

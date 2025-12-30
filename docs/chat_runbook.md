@@ -1,13 +1,15 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Chatbot Runbook
 
 This runbook describes how to operate the CS Chatbot LLM demo stack. It replaces the legacy email cleaner procedures and
 focuses on the queue-driven ingest ? worker ? dispatcher workflow.
 
 ## 1. Components
-- **FastAPI webhook (`POST /chat/enqueue`)** – accepts chat messages (text, conversation id, handle) and persists them to the Excel queue via `tools/chat_ingest.py`.
-- **Chat worker (`tools/chat_worker.py`)** – claims queued messages, runs `ChatService`, and writes responses back into the workbook.
-- **Dispatcher (`tools/chat_dispatcher.py`)** – acknowledges processed rows and logs responses to `data/chat_web_transcript.jsonl` through the web-demo adapter.
-- **Streamlit UI (`ui/app.py`)** – optional dashboard for triggering the three stages and reviewing queue/transcript state.
+- **FastAPI webhook (`POST /chat/enqueue`)** ï¿½ accepts chat messages (text, conversation id, handle) and persists them to the Excel queue via `tools/chat_ingest.py`.
+- **Chat worker (`tools/chat_worker.py`)** ï¿½ claims queued messages, runs `ChatService`, and writes responses back into the workbook.
+- **Dispatcher (`tools/chat_dispatcher.py`)** ï¿½ acknowledges processed rows and logs responses to `data/chat_web_transcript.jsonl` through the web-demo adapter.
+- **Streamlit UI (`ui/app.py`)** ï¿½ optional dashboard for triggering the three stages and reviewing queue/transcript state.
 
 ## 2. Prerequisites
 - Python 3.11 with dependencies from `requirements.txt`.

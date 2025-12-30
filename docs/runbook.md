@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 > **Migration Note (2025-09-29):** The email-specific runbook below is being replaced by the CS-chatbot workflow.\n> Use the Streamlit playground (`ui/app.py`) and chat queue docs (`docs/chat_queue_design.md`) for the current demo; legacy\n> email procedures remain here until the new runbook is finalized.\n\n# Customer Service Cleaner Runbook
 
 This runbook describes how to operate the cleanroom email pipeline in production, including startup/shutdown, monitoring, failover, and monthly reporting.

@@ -71,8 +71,9 @@ def ingest_messages(queue_path: Path, messages: Iterable[dict]) -> int:
         return 0
 
     if USE_DB_QUEUE:
+        created = 0
         for row in rows:
-            queue_db.insert_message(
+            _, was_created = queue_db.insert_message(
                 {
                     "message_id": row.get("message_id") or "",
                     "conversation_id": row.get("conversation_id"),
@@ -85,7 +86,9 @@ def ingest_messages(queue_path: Path, messages: Iterable[dict]) -> int:
                     "ingest_signature": row.get("ingest_signature", ""),
                 }
             )
-        return len(rows)
+            if was_created:
+                created += 1
+        return created
 
     queue_df = _load_queue(queue_path)
     combined = pd.concat([queue_df, pd.DataFrame(rows)], ignore_index=True)

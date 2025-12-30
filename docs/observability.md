@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Observability Guide
 
 This guide describes how to monitor the cleanroom email pipeline, surface key metrics, and wire alerts into your existing observability stack.

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 from uuid import uuid4
@@ -31,6 +31,12 @@ def _extract_text(row: Dict[str, Any]) -> str:
         or row.get("text")
         or ""
     ).strip()
+
+
+def _backoff_seconds(retry_count: int) -> int:
+    base = max(config.RETRY_BASE_SECONDS, 1)
+    max_wait = max(config.RETRY_MAX_SECONDS, base)
+    return min(int(base * (2**retry_count)), max_wait)
 
 
 def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -71,6 +77,7 @@ def process_once(processor_id: str) -> bool:
     started_at = row.get("started_at") or _now_iso()
     text = _extract_text(row)
     conversation_id = row.get("conversation_id") or str(uuid4())
+    retry_count = int(row.get("retry_count") or 0)
 
     metadata = {
         "tenant": row.get("end_user_handle") or row.get("customer") or "",
@@ -138,27 +145,55 @@ def process_once(processor_id: str) -> bool:
         elapsed = time.perf_counter() - start
         queue_db.update_row_status(
             row["id"],
-            status="failed_schema",
+            status="dead_letter",
             processor_id=processor_id,
             started_at=started_at,
             finished_at=_now_iso(),
             latency_seconds=elapsed,
-            response_metadata={"error": str(exc)},
+            retry_count=retry_count + 1,
+            response_metadata={"error": str(exc), "dead_letter_reason": "schema_validation"},
         )
         print(f"Schema validation failed for case={row.get('case_id') or row['id']}: {exc}")
         metrics.incr("triage_failed_schema")
+        metrics.incr("triage_dead_letter")
     except Exception as exc:  # pragma: no cover - defensive
         elapsed = time.perf_counter() - start
-        queue_db.update_row_status(
-            row["id"],
-            status="failed",
-            processor_id=processor_id,
-            started_at=started_at,
-            finished_at=_now_iso(),
-            latency_seconds=elapsed,
-            response_metadata={"error": str(exc)},
-        )
-        print(f"Failed triage for case={row.get('case_id') or row['id']}: {exc}")
+        next_retry = retry_count + 1
+        if next_retry > config.MAX_RETRIES:
+            queue_db.update_row_status(
+                row["id"],
+                status="dead_letter",
+                processor_id=processor_id,
+                started_at=started_at,
+                finished_at=_now_iso(),
+                latency_seconds=elapsed,
+                retry_count=next_retry,
+                response_metadata={"error": str(exc), "dead_letter_reason": "max_retries"},
+            )
+            print(f"Failed triage for case={row.get('case_id') or row['id']}: {exc} (dead-lettered)")
+            metrics.incr("triage_dead_letter")
+        else:
+            delay = _backoff_seconds(retry_count)
+            available_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
+            queue_db.update_row_status(
+                row["id"],
+                status="queued",
+                processor_id="",
+                started_at=None,
+                finished_at=None,
+                latency_seconds=elapsed,
+                retry_count=next_retry,
+                available_at=available_at.isoformat().replace("+00:00", "Z"),
+                response_metadata={
+                    "error": str(exc),
+                    "next_action": "retry",
+                    "retry_in_seconds": delay,
+                },
+            )
+            print(
+                f"Retrying case={row.get('case_id') or row['id']} after error: {exc} (retry {next_retry}/{config.MAX_RETRIES}, next in {delay}s)"
+            )
+            metrics.incr("triage_retry")
         metrics.incr("triage_failed")
     return True
 

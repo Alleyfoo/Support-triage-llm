@@ -2,34 +2,33 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
+import pytest
 
-from app import server
+from app import queue_db, server
+from app.schemas import ChatEnqueueRequest
 
 
 def test_chat_enqueue_writes_queue(tmp_path, monkeypatch):
-    queue_path = tmp_path / "queue.xlsx"
-    monkeypatch.setattr(server, "CHAT_QUEUE_PATH", queue_path)
+    monkeypatch.setattr(server, "USE_DB_QUEUE", True)
+    monkeypatch.setattr(queue_db, "DB_PATH", tmp_path / "queue.db")
+    queue_db.init_db()
 
-    response = server.enqueue_chat(
-        {
-            "conversation_id": "test-conv",
-            "text": "Hello, need help",
-            "end_user_handle": "tmp-user",
-            "channel": "web_chat",
-        }
-    )
-    assert response == {"enqueued": 1}
+    req = ChatEnqueueRequest(conversation_id="test-conv", text="Hello, need help", end_user_handle="tmp-user", channel="web_chat")
+    response = server.enqueue_chat(req)
+    assert response["enqueued"] == 1
+    assert response["deduped"] is False
 
-    df = pd.read_excel(queue_path)
-    assert df.loc[0, "conversation_id"] == "test-conv"
-    assert df.loc[0, "status"].lower() == "queued"
+    duplicate = server.enqueue_chat(req)
+    assert duplicate["enqueued"] == 0
+    assert duplicate["deduped"] is True
+
+    rows = queue_db.fetch_queue()
+    assert len(rows) == 1
+    assert rows[0]["conversation_id"] == "test-conv"
 
 
-def test_chat_enqueue_ignores_empty(tmp_path, monkeypatch):
-    queue_path = tmp_path / "queue.xlsx"
-    monkeypatch.setattr(server, "CHAT_QUEUE_PATH", queue_path)
-
-    response = server.enqueue_chat({"conversation_id": "c1", "text": "   "})
-    assert response == {"enqueued": 0}
-    assert not queue_path.exists()
+def test_chat_enqueue_rejects_empty(monkeypatch):
+    req = ChatEnqueueRequest(conversation_id="c1", text="   ")
+    resp = server.enqueue_chat(req)
+    assert resp["enqueued"] == 0
+    assert resp["queue_id"] is None

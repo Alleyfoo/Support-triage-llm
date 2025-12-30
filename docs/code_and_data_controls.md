@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Code and Data Controls: Initial Plan (GxP‑style)
 
 This plan outlines how code, configuration, and data handling will be specified and controlled for a privacy‑first customer service assistant. It serves as a starting point for formal GxP/ISO documentation and can be expanded into SOPs.

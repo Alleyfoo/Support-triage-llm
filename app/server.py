@@ -84,16 +84,18 @@ def reply(req: EmailRequest) -> EmailResponse:
 def enqueue_chat(payload: ChatEnqueueRequest) -> Dict[str, int]:
     message = {
         "conversation_id": payload.conversation_id or "api-web",
-        "text": payload.text,
+        "text": (payload.text or "").strip(),
         "end_user_handle": payload.end_user_handle or "api-user",
         "channel": payload.channel or "web_chat",
         "message_id": payload.message_id or "",
         "raw_payload": payload.raw_payload or "",
         "case_id": payload.message_id or payload.conversation_id or "",
     }
+    if not message["text"]:
+        return {"enqueued": 0, "queue_id": None, "deduped": False}
     if USE_DB_QUEUE:
-        queue_id = queue_db.insert_message(message)
-        return {"enqueued": 1, "queue_id": queue_id}
+        queue_id, created = queue_db.insert_message(message)
+        return {"enqueued": 1 if created else 0, "queue_id": queue_id, "deduped": not created}
 
     count = chat_ingest.ingest_messages(CHAT_QUEUE_PATH, [message])
     return {"enqueued": count}
@@ -121,8 +123,8 @@ def triage_enqueue(req: TriageRequest) -> Dict[str, int]:
         "raw_payload": "",
         "ingest_signature": "triage-api",
     }
-    queue_id = queue_db.insert_message(message)
-    return {"enqueued": 1, "queue_id": queue_id}
+    queue_id, created = queue_db.insert_message(message)
+    return {"enqueued": 1 if created else 0, "queue_id": queue_id, "deduped": not created}
 
 
 app.include_router(metrics_router)

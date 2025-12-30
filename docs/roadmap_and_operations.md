@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Roadmap and Operational Design (Draft)
 
 This document captures the next set of high‑value improvements, why they matter, and how we intend to implement them. It complements the Process Overview and Runbook by explaining what each “box” will do and how they connect.

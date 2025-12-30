@@ -38,7 +38,7 @@ def parse_export(path: Path) -> List[Dict[str, str]]:
 def enqueue(messages: List[Dict[str, str]]) -> int:
     count = 0
     for msg in messages:
-        queue_db.insert_message(
+        _, created = queue_db.insert_message(
             {
                 "conversation_id": msg.get("conversation_id") or "intercom",
                 "text": msg.get("text", ""),
@@ -48,7 +48,8 @@ def enqueue(messages: List[Dict[str, str]]) -> int:
                 "ingest_signature": msg.get("ingest_signature") or "",
             }
         )
-        count += 1
+        if created:
+            count += 1
     return count
 
 

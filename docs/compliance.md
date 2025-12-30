@@ -1,3 +1,5 @@
+> **Archived (legacy chatbot):** Current system docs live in DESIGN.md, RUNBOOK.md, and docs/LEGACY.md. This file remains for historical context.
+
 # Compliance & Data Protection Guide
 
 This document summarises the policies and controls required to operate the cleanroom pipeline in a regulated (e.g. GDPR) environment.

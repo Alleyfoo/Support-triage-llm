@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from . import config
 from .redaction import redact
 from .validation import SchemaValidationError, validate_payload, validate_with_retry
+from .time_window import parse_time_window
 
 PROMPT_VERSION_HEURISTIC = "triage-heuristic-v1"
 PROMPT_VERSION_LLM = "triage-llm-v1"
@@ -102,11 +103,12 @@ def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     case_type = _infer_case_type(text)
     severity = _infer_severity(text)
     tenant_hint = metadata.get("tenant") or metadata.get("customer") or ""
+    time_window = parse_time_window(text)
 
     return {
         "case_type": case_type,
         "severity": severity,
-        "time_window": {"start": None, "end": None, "confidence": 0.1},
+        "time_window": time_window,
         "scope": {
             "affected_tenants": [tenant_hint] if tenant_hint else [],
             "affected_users": [],
@@ -206,6 +208,10 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
             parsed = _extract_json_block(raw)
             validate_payload(parsed, "triage.schema.json")
             latency_ms = int((time.perf_counter() - start) * 1000)
+            if not parsed.get("time_window") or (
+                parsed["time_window"].get("start") is None and parsed["time_window"].get("end") is None
+            ):
+                parsed["time_window"] = parse_time_window(text)
             parsed["_meta"] = {
                 "llm_model": config.OLLAMA_MODEL or "ollama",
                 "prompt_version": PROMPT_VERSION_LLM,

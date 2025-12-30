@@ -8,7 +8,7 @@
 
 ## Processing stages
 1) **Ingress**: `/triage/enqueue` (API key). Inputs: text, tenant hint, source. Helpers: `.eml` importer, Intercom-like importer.
-2) **Queue**: SQLite (volume-mounted). Deterministic row claim.
+2) **Queue**: SQLite (volume-mounted). Deterministic row claim + idempotency keys + backoff-aware retries with dead-letter on max retries.
 3) **Triage**: heuristic or LLM → triage JSON (schema-validated) + draft reply + missing questions. Redaction happens first.
 4) **Tool selection**: rules/LLM-hinted; allowlist only.
 5) **Evidence bundles**: run tools → evidence_bundle schema.
@@ -33,5 +33,5 @@
 - Report: use evidence only; cite event IDs/timestamps; no ETAs; if missing evidence, say so and ask for it.
 
 ## Storage/audit
-- Queue rows store: raw + redacted payload, triage JSON, evidence JSON, final report JSON, tool execution list, meta (model, prompt version, mode, schema_valid, claim warnings), timestamps, case_id/message_id.
+- Queue rows store: raw + redacted payload, triage JSON, evidence JSON, final report JSON, tool execution list, meta (model, prompt version, mode, schema_valid, claim warnings), retry_count/available_at, timestamps, case_id/message_id.
 - Retention: `tools/retention.py` can purge/scrub via RETENTION_* envs; compose runs it on container start.
