@@ -464,6 +464,7 @@ def main() -> int:
     p.add_argument("--skip-seed", action="store_true", help="Skip seeding fake emails.")
     p.add_argument("--skip-worker", action="store_true", help="Skip draining queue with triage_worker.")
     p.add_argument("--triage-mode", default=None, help="Override TRIAGE_MODE env (rules|heuristic|llm).")
+    p.add_argument("--ollama-url", default=None, help="Override OLLAMA_URL/OLLAMA_HOST (e.g., http://localhost:11434).")
     p.add_argument("--ollama-model", default=None, help="Override OLLAMA_MODEL env.")
     p.add_argument("--ensure-ollama-model", action="store_true", help="If set, pull Ollama model when missing.")
     p.add_argument("--to", default=os.environ.get("DEMO_EMAIL_TO", "support@local"), help="To: address for .eml output.")
@@ -474,6 +475,9 @@ def main() -> int:
 
     if args.triage_mode:
         os.environ["TRIAGE_MODE"] = args.triage_mode
+    if args.ollama_url:
+        os.environ["OLLAMA_URL"] = args.ollama_url
+        os.environ["OLLAMA_HOST"] = args.ollama_url
     if args.ollama_model:
         os.environ["OLLAMA_MODEL"] = args.ollama_model
 
