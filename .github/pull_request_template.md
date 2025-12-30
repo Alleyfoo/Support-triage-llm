@@ -1,18 +1,14 @@
 ## Summary
-(What this PR changes; keep it concise.)
-
-## Design Document Reference
-- Section(s) touched in `docs/design_document.md`:
-  - e.g., “2. Functional Requirements”, “6. Guardrails & Validation”
+- What does this PR change?
+- Which docs did you update (DESIGN.md / RUNBOOK.md / LEGACY.md)?
 
 ## Checklists
-- [ ] I updated or reviewed the relevant sections in the Design Document.
-- [ ] The change preserves TERM & numeric invariants.
-- [ ] JSON output is valid and covered by tests.
-- [ ] (If batch) I ran `cli/clean_table.py` on `data/mock_inputs.csv`.
+- [ ] Schema contracts still hold (triage/evidence/final_report)
+- [ ] Tool registry changes (if any) are allowlisted + validated
+- [ ] Docs updated as needed (DESIGN / RUNBOOK / LEGACY)
+- [ ] No new promises/ETAs or unsupported claims
 
 ## Testing
-- Commands and outputs:
-
-examples here
-
+```
+python -m pytest ...
+```

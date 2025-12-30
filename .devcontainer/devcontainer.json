@@ -1,5 +1,5 @@
 {
-  "name": "slm-Cleanroom",
+  "name": "Support-Triage-Copilot",
   "build": {
     "context": "..",
     "dockerfile": "Dockerfile"
