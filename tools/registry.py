@@ -12,6 +12,7 @@ import jsonschema
 
 from app.validation import load_schema, SchemaValidationError
 from tools.log_evidence import run_log_evidence
+from tools.service_status import run_service_status
 
 
 @dataclass
@@ -224,7 +225,7 @@ _LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        "service": {"type": "string"},
+        "service": {"type": ["string", "null"]},
         "query_type": {"type": "string", "enum": ["errors", "timeouts", "availability"]},
         "time_window": {
             "type": "object",
@@ -237,7 +238,18 @@ _LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
         },
         "tenant": {"type": ["string", "null"]},
     },
-    "required": ["service", "time_window", "query_type"],
+    "required": ["time_window", "query_type"],
+}
+
+_SERVICE_STATUS_PARAMS_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "service_id": {"type": "string"},
+        "tenant_id": {"type": ["string", "null"]},
+        "region": {"type": ["string", "null"]},
+    },
+    "required": ["service_id"],
 }
 
 
@@ -291,6 +303,12 @@ def _build_registry() -> Dict[str, Tool]:
             params_schema=_LOG_EVIDENCE_PARAMS_SCHEMA,
             result_schema=evidence_schema,
             fn=run_log_evidence,
+        ),
+        "service_status": Tool(
+            name="service_status",
+            params_schema=_SERVICE_STATUS_PARAMS_SCHEMA,
+            result_schema=evidence_schema,
+            fn=run_service_status,
         ),
     }
 

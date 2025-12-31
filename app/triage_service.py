@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import re
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -16,7 +17,7 @@ from .vector_store import get_store as get_vector_store
 from tools.registry import REGISTRY
 from .redaction import redact
 from .validation import SchemaValidationError, validate_payload, validate_with_retry
-from .time_window import parse_time_window, ISO_PATTERN
+from .time_window import DATE_PATTERN, MONTH_DAY_PATTERN, ISO_PATTERN, parse_time_window
 
 PROMPT_VERSION_HEURISTIC = "triage-heuristic-v1"
 PROMPT_VERSION_LLM = "triage-llm-v1"
@@ -57,9 +58,11 @@ def _infer_case_type(text: str) -> str:
     lower = text.lower()
     if any(token in lower for token in ["outage", "downtime", "service unavailable", "site down", "system down"]):
         return "incident"
-    if "webhook" in lower or "integration" in lower or "api" in lower or "sync" in lower or "connector" in lower:
+    if "webhook" in lower or "integration" in lower or "api" in lower or "sync" in lower or "connector" in lower or "http://" in lower or "https://" in lower:
         return "integration"
     if "bounce" in lower or "deliver" in lower or "email" in lower:
+        return "email_delivery"
+    if EMAIL_PATTERN.search(text):
         return "email_delivery"
     if any(k in lower for k in ["mfa", "2fa", "otp", "authenticator", "login", "sign-in", "sign in"]):
         return "auth_access"
@@ -87,9 +90,42 @@ def _infer_severity(text: str) -> str:
     return "low"
 
 
-def _extract_time_fields(text: str) -> Dict[str, Any]:
+def _parse_anchor(metadata: Dict[str, Any]) -> datetime:
+    ts = metadata.get("received_at") or metadata.get("created_at")
+    if isinstance(ts, str):
+        try:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(timezone.utc)
+        except Exception:
+            pass
+    return datetime.now(timezone.utc)
+
+
+def _has_explicit_date(text: str) -> bool:
+    return bool(ISO_PATTERN.search(text) or DATE_PATTERN.search(text) or MONTH_DAY_PATTERN.search(text))
+
+
+def _sanitize_time_window(time_window: Dict[str, Any], anchor: datetime, explicit: bool, source: str) -> Tuple[Dict[str, Any], bool]:
+    overridden = False
+    start = time_window.get("start")
+    end = time_window.get("end")
+    if start and not explicit:
+        try:
+            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(timezone.utc)
+            delta_days = abs((start_dt - anchor).days)
+            if start_dt.year != anchor.year or delta_days > 30:
+                time_window["start"] = None
+                time_window["end"] = None
+                time_window["confidence"] = min(float(time_window.get("confidence") or 0.1), 0.2)
+                overridden = True
+        except Exception:
+            pass
+    return time_window, overridden
+
+
+def _extract_time_fields(text: str, anchor: datetime) -> Dict[str, Any]:
     lower = text.lower()
-    parsed = parse_time_window(text)
+    parsed = parse_time_window(text, now=anchor)
+    explicit = _has_explicit_date(text)
     time_window = {
         "start": parsed.get("start"),
         "end": parsed.get("end"),
@@ -111,7 +147,13 @@ def _extract_time_fields(text: str) -> Dict[str, Any]:
             {"raw_text": raw, "timezone": None, "has_date": True, "has_only_clock_time": False, "confidence": max(time_window["confidence"], 0.8)}
         )
         time_ambiguity = "none"
-        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+        return {
+            "time_window": time_window,
+            "reported_time_window": reported,
+            "time_ambiguity": time_ambiguity,
+            "explicit_date": True,
+            "time_window_reason": parsed.get("reason", "parsed_from_text"),
+        }
 
     range_match = TIME_RANGE_RE.search(text)
     if range_match:
@@ -121,7 +163,13 @@ def _extract_time_fields(text: str) -> Dict[str, Any]:
             {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": max(time_window["confidence"], 0.5)}
         )
         time_ambiguity = "missing_date"
-        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+        return {
+            "time_window": time_window,
+            "reported_time_window": reported,
+            "time_ambiguity": time_ambiguity,
+            "explicit_date": explicit,
+            "time_window_reason": parsed.get("reason", "parsed_from_text"),
+        }
 
     if CLOCK_RE.search(text):
         raw = CLOCK_RE.search(text).group(0)
@@ -130,7 +178,12 @@ def _extract_time_fields(text: str) -> Dict[str, Any]:
             {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": max(time_window["confidence"], 0.4)}
         )
         time_ambiguity = "missing_date" if tz else "missing_timezone"
-        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+        return {
+            "time_window": time_window,
+            "reported_time_window": reported,
+            "time_ambiguity": time_ambiguity,
+            "time_window_reason": parsed.get("reason", "parsed_from_text"),
+        }
 
     if any(token in lower for token in ["yesterday", "last night", "since yesterday", "earlier today"]):
         reported.update({"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": max(time_window["confidence"], 0.2)})
@@ -138,7 +191,13 @@ def _extract_time_fields(text: str) -> Dict[str, Any]:
         return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
 
     # No time clues
-    return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
+    return {
+        "time_window": time_window,
+        "reported_time_window": reported,
+        "time_ambiguity": time_ambiguity,
+        "explicit_date": explicit,
+        "time_window_reason": parsed.get("reason", "parsed_from_text"),
+    }
 
 
 def _detect_domains(text: str) -> List[str]:
@@ -227,10 +286,13 @@ def _enrich_from_heuristic(text: str, payload: Dict[str, Any], metadata: Dict[st
     if payload.get("case_type") == "unknown" and base.get("case_type") != "unknown":
         payload["case_type"] = base["case_type"]
     # Backfill time window if missing
+    anchor = _parse_anchor(metadata)
     if not payload.get("time_window") or (
         payload["time_window"].get("start") is None and payload["time_window"].get("end") is None
     ):
-        payload["time_window"] = parse_time_window(text)
+        parsed = parse_time_window(text, now=anchor)
+        payload["time_window"] = parsed
+        payload["time_window_reason"] = parsed.get("reason", "parsed_from_text")
     if not payload.get("reported_time_window"):
         payload["reported_time_window"] = base.get("reported_time_window", {})
     if not payload.get("time_ambiguity"):
@@ -263,7 +325,8 @@ def _base_triage_payload(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     case_type = _infer_case_type(text)
     severity = _infer_severity(text)
     tenant_hint = metadata.get("tenant") or metadata.get("customer") or ""
-    time_fields = _extract_time_fields(text)
+    anchor = _parse_anchor(metadata)
+    time_fields = _extract_time_fields(text, anchor)
     time_window = time_fields["time_window"]
     reported_time_window = time_fields["reported_time_window"]
     time_ambiguity = time_fields["time_ambiguity"]
@@ -431,6 +494,8 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
                 payload.setdefault("suggested_tools", [])
                 payload.setdefault("missing_info_questions", [])
                 payload.setdefault("symptoms", [])
+                payload["case_type"] = payload.get("case_type") or _infer_case_type(text)
+                payload["severity"] = payload.get("severity") or _infer_severity(text)
                 payload.setdefault("time_window", {"start": None, "end": None, "confidence": 0.1})
                 payload.setdefault(
                     "reported_time_window",
@@ -466,14 +531,18 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
 def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Redact, extract triage fields, validate, and return triage JSON."""
     metadata = metadata or {}
+    anchor = _parse_anchor(metadata)
+    metadata["received_at"] = anchor.isoformat().replace("+00:00", "Z")
     redaction = redact(raw_text)
     text = redaction["redacted_text"]
 
     mode = config.TRIAGE_MODE
     if mode == "llm":
         triage_payload = _triage_llm(text, metadata)
+        source = "llm"
     else:
         triage_payload = _triage_heuristic(text, metadata)
+        source = "heuristic"
 
     meta = triage_payload.get("_meta", {})
     meta["redaction_applied"] = redaction["redaction_applied"]
@@ -481,6 +550,21 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
     meta["case_id"] = metadata.get("case_id")
     triage_payload["_meta"] = meta
     triage_payload = _apply_confidence_routing(text, triage_payload)
+
+    explicit = _has_explicit_date(text)
+    tw, overridden = _sanitize_time_window(triage_payload.get("time_window") or {"start": None, "end": None, "confidence": 0.1}, anchor, explicit, source)
+    triage_payload["time_window"] = tw
+    triage_payload["_meta"]["time_window_source"] = source
+    triage_payload["_meta"]["time_window_anchor"] = anchor.isoformat().replace("+00:00", "Z")
+    triage_payload["_meta"]["time_window_sanity_overridden"] = overridden
+    reason_hint = triage_payload.get("time_window_reason") or "parsed_none"
+    if overridden:
+        reason_hint = "sanity_override"
+    elif tw.get("start") or tw.get("end"):
+        reason_hint = reason_hint or "parsed_from_text"
+    else:
+        reason_hint = "parsed_none"
+    triage_payload["_meta"]["time_window_reason"] = reason_hint
 
     # Ensure redacted snippets persist in symptoms/draft when PII was removed.
     if meta.get("redaction_applied") and redaction.get("redacted_text"):

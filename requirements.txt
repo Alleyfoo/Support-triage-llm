@@ -5,3 +5,4 @@ pandas
 jsonschema
 streamlit
 schedule
+requests

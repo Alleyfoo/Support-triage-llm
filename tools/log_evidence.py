@@ -139,7 +139,7 @@ def run_log_evidence(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     log_evidence: Inspect log signals for downtime indicators.
     """
-    service = params["service"]
+    service = params.get("service") or params.get("tenant") or "api"
     time_window = params["time_window"]
     query_type = params["query_type"]
     start = _parse_ts(time_window["start"])

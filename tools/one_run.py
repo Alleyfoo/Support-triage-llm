@@ -125,9 +125,11 @@ def _run_pytest(tests: Optional[List[str]] = None) -> int:
         "tests/test_idempotency_and_retries.py",
     ]
     cmd = [sys.executable, "-m", "pytest", "-q", *test_targets]
-    print(f"\n[tests] running: {' '.join(cmd)}")
+    print(f"\n[tests] running: {' '.join(cmd)} (TRIAGE_MODE=heuristic)")
     try:
-        return subprocess.call(cmd, cwd=str(REPO_ROOT))
+        env = os.environ.copy()
+        env["TRIAGE_MODE"] = env.get("TRIAGE_MODE") or "heuristic"
+        return subprocess.call(cmd, cwd=str(REPO_ROOT), env=env)
     except FileNotFoundError:
         print("[tests] pytest not available (skipping).")
         return 0
@@ -397,6 +399,20 @@ def _render_inbox_email(row: Dict[str, Any]) -> Tuple[str, str]:
 
     subject = f"[TriageBot/{tenant}] {case_type} ({severity}) — {orig_subject} — {case_id}"
 
+    # Evidence highlights: show log/service_status signals so you can see log processing
+    highlights: List[str] = []
+    bundles = evidence if isinstance(evidence, list) else []
+    for b in bundles:
+        src = b.get("source") or b.get("evidence_type") or "unknown"
+        if src == "logs":
+            obs = "observed incident" if b.get("observed_incident") else "no incident observed"
+            window = b.get("incident_window") or b.get("time_window") or {}
+            highlights.append(f"logs: {obs} between {window.get('start')} and {window.get('end')} ({(b.get('metadata') or {}).get('summary_external','')})")
+        elif src == "service_status":
+            meta_svc = b.get("metadata") or {}
+            notes = "/".join(meta_svc.get("notes") or [])
+            highlights.append(f"service_status: {meta_svc.get('service_id')} status={meta_svc.get('status')} notes={notes}")
+
     body = textwrap.dedent(
         f"""\
         TriageBot Inbox Preview
@@ -426,6 +442,10 @@ def _render_inbox_email(row: Dict[str, Any]) -> Tuple[str, str]:
         Subject: {draft_subj}
 
         {draft_body}
+
+        Evidence Highlights
+        -------------------
+        {os.linesep.join(highlights) if highlights else '(none)'}
 
         Evidence Snapshot (raw)
         -----------------------

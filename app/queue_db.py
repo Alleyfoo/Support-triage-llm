@@ -76,6 +76,92 @@ CREATE TABLE IF NOT EXISTS conversation_history (
 CREATE INDEX IF NOT EXISTS idx_status ON queue(status);
 CREATE INDEX IF NOT EXISTS idx_conversation ON queue(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_history_conversation ON conversation_history(conversation_id, created_at);
+
+CREATE TABLE IF NOT EXISTS intakes (
+    intake_id TEXT PRIMARY KEY,
+    received_at TEXT,
+    channel TEXT,
+    from_address TEXT,
+    from_domain TEXT,
+    claimed_domain TEXT,
+    subject_raw TEXT,
+    body_raw TEXT,
+    attachments_json TEXT,
+    tenant_id TEXT,
+    identity_confidence TEXT DEFAULT 'unknown',
+    status TEXT DEFAULT 'new',
+    resolution_note TEXT,
+    resolved_at TEXT,
+    acknowledged_at TEXT,
+    acknowledged_by TEXT,
+    customer_request_id TEXT,
+    error_code TEXT,
+    deleted_at TEXT,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS evidence_runs (
+    evidence_id TEXT PRIMARY KEY,
+    intake_id TEXT,
+    tool_name TEXT,
+    params_json TEXT,
+    ran_at TEXT,
+    expires_at TEXT,
+    time_bucket TEXT,
+    params_hash TEXT,
+    status TEXT,
+    result_json_internal TEXT,
+    summary_external TEXT,
+    summary_internal TEXT,
+    redaction_level TEXT DEFAULT 'internal',
+    result_hash TEXT,
+    ttl_seconds INTEGER,
+    error_message TEXT,
+    replays_evidence_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS handoff_packs (
+    handoff_id TEXT PRIMARY KEY,
+    intake_id TEXT,
+    created_at TEXT,
+    expires_at TEXT,
+    tier INTEGER,
+    payload_json TEXT,
+    sent_to TEXT,
+    status TEXT DEFAULT 'created'
+);
+
+CREATE TABLE IF NOT EXISTS tenants (
+    tenant_id TEXT PRIMARY KEY,
+    primary_domain TEXT,
+    domains_json TEXT,
+    entitled_services_json TEXT,
+    default_region TEXT
+);
+
+CREATE TABLE IF NOT EXISTS replay_audit (
+    id TEXT PRIMARY KEY,
+    api_key_hash TEXT,
+    evidence_id TEXT,
+    new_evidence_id TEXT,
+    ts TEXT,
+    result TEXT,
+    reason TEXT,
+    remote_ip TEXT,
+    user_agent TEXT
+);
+
+CREATE TABLE IF NOT EXISTS service_breakers (
+    service_id TEXT,
+    scope TEXT,
+    consecutive_failures INTEGER,
+    opened_at TEXT,
+    cooldown_until TEXT,
+    last_error_kind TEXT,
+    updated_at TEXT,
+    PRIMARY KEY(service_id, scope)
+);
 """
 
 ALLOWED_UPDATE_FIELDS = {
@@ -232,6 +318,68 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     for name, col_type in desired.items():
         if name not in existing:
             cursor.execute(f"ALTER TABLE queue ADD COLUMN {name} {col_type}")
+
+    cursor.execute("PRAGMA table_info(evidence_runs)")
+    ev_existing = {row["name"] for row in cursor.fetchall()}
+    ev_desired = {
+        "time_bucket": "TEXT",
+        "params_hash": "TEXT",
+        "replays_evidence_id": "TEXT",
+    }
+    for name, col_type in ev_desired.items():
+        if name not in ev_existing:
+            cursor.execute(f"ALTER TABLE evidence_runs ADD COLUMN {name} {col_type}")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_cache ON evidence_runs (tool_name, params_hash, time_bucket)")
+
+    cursor.execute("PRAGMA table_info(intakes)")
+    int_existing = {row["name"] for row in cursor.fetchall()}
+    int_desired = {
+        "status": "TEXT",
+        "resolution_note": "TEXT",
+        "resolved_at": "TEXT",
+        "acknowledged_at": "TEXT",
+        "acknowledged_by": "TEXT",
+        "customer_request_id": "TEXT",
+        "error_code": "TEXT",
+        "deleted_at": "TEXT",
+    }
+    for name, col_type in int_desired.items():
+        if name not in int_existing:
+            cursor.execute(f"ALTER TABLE intakes ADD COLUMN {name} {col_type}")
+
+    cursor.execute("PRAGMA table_info(evidence_runs)")
+    ev_existing = {row["name"] for row in cursor.fetchall()}
+    ev_desired = {
+        "expires_at": "TEXT",
+    }
+    for name, col_type in ev_desired.items():
+        if name not in ev_existing:
+            cursor.execute(f"ALTER TABLE evidence_runs ADD COLUMN {name} {col_type}")
+
+    cursor.execute("PRAGMA table_info(handoff_packs)")
+    hp_existing = {row["name"] for row in cursor.fetchall()}
+    hp_desired = {"expires_at": "TEXT"}
+    for name, col_type in hp_desired.items():
+        if name not in hp_existing:
+            cursor.execute(f"ALTER TABLE handoff_packs ADD COLUMN {name} {col_type}")
+
+    cursor.execute("PRAGMA table_info(service_breakers)")
+    sb_existing = {row["name"] for row in cursor.fetchall()}
+    if "service_id" not in sb_existing:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS service_breakers (
+                service_id TEXT,
+                scope TEXT,
+                consecutive_failures INTEGER,
+                opened_at TEXT,
+                cooldown_until TEXT,
+                last_error_kind TEXT,
+                updated_at TEXT,
+                PRIMARY KEY(service_id, scope)
+            )
+            """
+        )
 
 
 def get_by_idempotency(idempotency_key: str) -> Optional[Dict[str, Any]]:
@@ -538,6 +686,516 @@ def _maybe_json_dump(key: str, value: Any) -> Any:
         except TypeError:
             return str(value)
     return value
+
+
+def _canonical_json(obj: Any) -> str:
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def upsert_tenant(tenant_id: str, primary_domain: str, domains: List[str], entitled_services: List[str], default_region: Optional[str] = None) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO tenants (tenant_id, primary_domain, domains_json, entitled_services_json, default_region)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(tenant_id) DO UPDATE SET primary_domain=excluded.primary_domain, domains_json=excluded.domains_json, entitled_services_json=excluded.entitled_services_json, default_region=excluded.default_region
+            """,
+            (tenant_id, primary_domain, json.dumps(domains), json.dumps(entitled_services), default_region),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _load_tenants() -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tenants")
+        rows = cursor.fetchall()
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def _domain_from_email(addr: str) -> str:
+    if not addr or "@" not in addr:
+        return ""
+    return (addr.split("@", 1)[1] or "").lower()
+
+
+def insert_intake(
+    *,
+    received_at: str,
+    channel: str,
+    from_address: str,
+    claimed_domain: Optional[str],
+    subject_raw: str,
+    body_raw: str,
+    attachments_json: Optional[str] = None,
+    customer_request_id: Optional[str] = None,
+    error_code: Optional[str] = None,
+) -> str:
+    intake_id = str(uuid4())
+    now = _now_iso()
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO intakes (intake_id, received_at, channel, from_address, from_domain, claimed_domain, subject_raw, body_raw, attachments_json, tenant_id, identity_confidence, status, resolution_note, resolved_at, customer_request_id, error_code, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'unknown', 'new', '', NULL, ?, ?, ?, ?)
+            """,
+            (
+                intake_id,
+                received_at,
+                channel,
+                from_address,
+                _domain_from_email(from_address),
+                claimed_domain or "",
+                subject_raw,
+                body_raw,
+                attachments_json or "[]",
+                customer_request_id or "",
+                error_code or "",
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return intake_id
+
+
+def update_intake_tenant(intake_id: str, tenant_id: Optional[str], identity_confidence: str) -> None:
+    now = _now_iso()
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE intakes SET tenant_id = ?, identity_confidence = ?, updated_at = ? WHERE intake_id = ?
+            """,
+            (tenant_id, identity_confidence, now, intake_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def resolve_tenant(intake: Dict[str, Any]) -> Dict[str, Any]:
+    tenants = _load_tenants()
+    from_domain = (intake.get("from_domain") or "").lower()
+    claimed_domain = (intake.get("claimed_domain") or "").lower()
+    for tenant in tenants:
+        domains = json.loads(tenant.get("domains_json") or "[]") or []
+        if from_domain and from_domain in [d.lower() for d in domains]:
+            return {"tenant_id": tenant["tenant_id"], "confidence": "high", "entitled_services": json.loads(tenant.get("entitled_services_json") or "[]"), "default_region": tenant.get("default_region")}
+    for tenant in tenants:
+        domains = json.loads(tenant.get("domains_json") or "[]") or []
+        if claimed_domain and claimed_domain in [d.lower() for d in domains]:
+            return {"tenant_id": tenant["tenant_id"], "confidence": "low", "entitled_services": json.loads(tenant.get("entitled_services_json") or "[]"), "default_region": tenant.get("default_region")}
+    return {"tenant_id": None, "confidence": "unknown", "entitled_services": [], "default_region": None}
+
+
+def record_evidence_run(
+    *,
+    intake_id: str,
+    tool_name: str,
+    params: Dict[str, Any],
+    result: Optional[Dict[str, Any]],
+    summary_external: str = "",
+    summary_internal: Optional[str] = None,
+    status: str = "ok",
+    redaction_level: str = "internal",
+    ttl_seconds: Optional[int] = None,
+    error_message: Optional[str] = None,
+    replays_evidence_id: Optional[str] = None,
+    cache_bucketed: bool = True,
+) -> Dict[str, Any]:
+    params_json = _canonical_json(params)
+    params_hash = hashlib.sha256(params_json.encode("utf-8")).hexdigest()
+    evidence_id = str(uuid4())
+    ran_at = _now_iso()
+    expires_at = (datetime.fromisoformat(ran_at.replace("Z", "+00:00")) + timedelta(days=config.EVIDENCE_TTL_DAYS)).isoformat().replace("+00:00", "Z")
+    time_bucket = ran_at[:16] if cache_bucketed else ran_at
+    result_json = _canonical_json(result or {})
+    digest_input = _canonical_json({"params": params, "result": result or {}})
+    result_hash = hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
+
+    cache_hit = False
+    conn = get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.execute(
+                """
+                INSERT INTO evidence_runs (evidence_id, intake_id, tool_name, params_json, ran_at, expires_at, time_bucket, params_hash, status, result_json_internal, summary_external, summary_internal, redaction_level, result_hash, ttl_seconds, error_message, replays_evidence_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    evidence_id,
+                    intake_id,
+                    tool_name,
+                    params_json,
+                    ran_at,
+                    expires_at,
+                    time_bucket,
+                    params_hash,
+                    status,
+                    result_json,
+                    summary_external,
+                    summary_internal or "",
+                    redaction_level,
+                    result_hash,
+                    ttl_seconds,
+                    error_message,
+                    replays_evidence_id,
+                ),
+            )
+            conn.commit()
+            cache_hit = False
+        except sqlite3.IntegrityError:
+            # Another process inserted same tool/params bucket; reuse latest
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM evidence_runs
+                WHERE tool_name = ? AND params_hash = ? AND time_bucket = ?
+                ORDER BY ran_at DESC
+                LIMIT 1
+                """,
+                (tool_name, params_hash, time_bucket),
+            )
+            row = cursor.fetchone()
+            conn.rollback()
+            if row:
+                data = _row_to_dict(row)
+                data["cache_hit"] = True
+                data["checked_at"] = data.get("ran_at")
+                return data
+            else:
+                raise
+    finally:
+        conn.close()
+
+    return {
+        "evidence_id": evidence_id,
+        "intake_id": intake_id,
+        "tool_name": tool_name,
+        "params_json": params_json,
+        "params_hash": params_hash,
+        "time_bucket": time_bucket,
+        "expires_at": expires_at,
+        "ran_at": ran_at,
+        "checked_at": ran_at,
+        "status": status,
+        "result_json_internal": result_json,
+        "summary_external": summary_external,
+        "summary_internal": summary_internal or "",
+        "redaction_level": redaction_level,
+        "result_hash": result_hash,
+        "ttl_seconds": ttl_seconds,
+        "error_message": error_message,
+        "replays_evidence_id": replays_evidence_id,
+        "cache_hit": cache_hit,
+    }
+
+
+def create_handoff_pack(*, intake_id: str, tier: int, payload_json: Dict[str, Any], sent_to: Optional[str] = None, status: str = "created") -> str:
+    handoff_id = str(uuid4())
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO handoff_packs (handoff_id, intake_id, created_at, expires_at, tier, payload_json, sent_to, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                handoff_id,
+                intake_id,
+                _now_iso(),
+                (datetime.now(timezone.utc) + timedelta(days=config.HANDOFF_TTL_DAYS)).isoformat().replace("+00:00", "Z"),
+                tier,
+                _canonical_json(payload_json),
+                sent_to,
+                status,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return handoff_id
+
+
+def get_evidence_by_id(evidence_id: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM evidence_runs WHERE evidence_id = ?", (evidence_id,))
+        row = cursor.fetchone()
+        return _row_to_dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_service_breaker(service_id: str, scope: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM service_breakers WHERE service_id = ? AND scope = ?", (service_id, scope))
+        row = cursor.fetchone()
+        return _row_to_dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def bump_service_breaker_failure(service_id: str, scope: str, now_dt: datetime, threshold: int, cooldown_seconds: int, error_kind: str) -> None:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM service_breakers WHERE service_id = ? AND scope = ?", (service_id, scope))
+        row = cursor.fetchone()
+        failures = int(row["consecutive_failures"]) + 1 if row else 1
+        opened_at = row["opened_at"] if row else None
+        cooldown_until = row["cooldown_until"] if row else None
+        if failures >= threshold:
+            opened_at = now_dt.isoformat().replace("+00:00", "Z")
+            cooldown_until = (now_dt + timedelta(seconds=cooldown_seconds)).isoformat().replace("+00:00", "Z")
+        if row:
+            cursor.execute(
+                """
+                UPDATE service_breakers SET consecutive_failures = ?, opened_at = ?, cooldown_until = ?, last_error_kind = ?, updated_at = ?
+                WHERE service_id = ? AND scope = ?
+                """,
+                (failures, opened_at, cooldown_until, error_kind, now_dt.isoformat().replace("+00:00", "Z"), service_id, scope),
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO service_breakers (service_id, scope, consecutive_failures, opened_at, cooldown_until, last_error_kind, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (service_id, scope, failures, opened_at, cooldown_until, error_kind, now_dt.isoformat().replace("+00:00", "Z")),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def reset_service_breaker(service_id: str, scope: str) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO service_breakers (service_id, scope, consecutive_failures, opened_at, cooldown_until, last_error_kind, updated_at)
+            VALUES (?, ?, 0, NULL, NULL, NULL, ?)
+            ON CONFLICT(service_id, scope) DO UPDATE SET consecutive_failures=0, opened_at=NULL, cooldown_until=NULL, last_error_kind=NULL, updated_at=excluded.updated_at
+            """,
+            (service_id, scope, _now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def list_intakes(limit: int = 50, tenant: Optional[str] = None, confidence: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        conditions = []
+        params: List[Any] = []
+        if tenant:
+            conditions.append("tenant_id = ?")
+            params.append(tenant)
+        if confidence:
+            conditions.append("identity_confidence = ?")
+            params.append(confidence)
+        if search:
+            conditions.append("(subject_raw LIKE ? OR body_raw LIKE ?)")
+            params.extend([f"%{search}%", f"%{search}%"])
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        cursor.execute(
+            f"""
+            SELECT * FROM intakes
+            {where}
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            params + [max(1, limit)],
+        )
+        rows = cursor.fetchall()
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_intake(intake_id: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM intakes WHERE intake_id = ?", (intake_id,))
+        row = cursor.fetchone()
+        return _row_to_dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def list_evidence_for_intake(intake_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT evidence_id, tool_name, ran_at, status, summary_external, summary_internal, redaction_level, result_hash, params_json, replays_evidence_id, time_bucket, params_hash
+            FROM evidence_runs
+            WHERE intake_id = ?
+            ORDER BY ran_at DESC
+            LIMIT ?
+            """,
+            (intake_id, max(1, limit)),
+        )
+        rows = cursor.fetchall()
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def list_handoffs_for_intake(intake_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT * FROM handoff_packs
+            WHERE intake_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (intake_id, max(1, limit)),
+        )
+        rows = cursor.fetchall()
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def update_intake_status(intake_id: str, status: str, resolution_note: Optional[str] = None) -> None:
+    conn = get_connection()
+    try:
+        resolved_at = _now_iso() if status == "resolved" else None
+        conn.execute(
+            """
+            UPDATE intakes SET status = ?, resolution_note = COALESCE(?, resolution_note), resolved_at = COALESCE(?, resolved_at), updated_at = ?
+            WHERE intake_id = ?
+            """,
+            (status, resolution_note, resolved_at, _now_iso(), intake_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_intake_request_info(intake_id: str, customer_request_id: Optional[str], error_code: Optional[str]) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE intakes SET customer_request_id = COALESCE(?, customer_request_id), error_code = COALESCE(?, error_code), updated_at = ?
+            WHERE intake_id = ?
+            """,
+            (customer_request_id, error_code, _now_iso(), intake_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def acknowledge_intake(intake_id: str, acknowledged_by: str) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            UPDATE intakes SET acknowledged_at = ?, acknowledged_by = ?, updated_at = ?
+            WHERE intake_id = ?
+            """,
+            (_now_iso(), acknowledged_by, _now_iso(), intake_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _hash_api_key(api_key: str) -> str:
+    return hashlib.sha256((api_key or "").encode("utf-8")).hexdigest()
+
+
+def log_replay_attempt(
+    *,
+    api_key: str,
+    evidence_id: str,
+    new_evidence_id: Optional[str],
+    result: str,
+    reason: str,
+    remote_ip: Optional[str],
+    user_agent: Optional[str],
+) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO replay_audit (id, api_key_hash, evidence_id, new_evidence_id, ts, result, reason, remote_ip, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(uuid4()),
+                _hash_api_key(api_key),
+                evidence_id,
+                new_evidence_id,
+                _now_iso(),
+                result,
+                reason,
+                remote_ip or "",
+                user_agent or "",
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def count_replays_for_key(api_key: str, window_seconds: int) -> int:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS c FROM replay_audit
+            WHERE api_key_hash = ? AND ts >= ?
+            """,
+            (_hash_api_key(api_key), (datetime.now(timezone.utc) - timedelta(seconds=window_seconds)).isoformat().replace("+00:00", "Z")),
+        )
+        row = cursor.fetchone()
+        return int(row["c"] if row else 0)
+    finally:
+        conn.close()
+
+
+def count_replays_for_evidence(evidence_id: str, window_seconds: int) -> int:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS c FROM replay_audit
+            WHERE evidence_id = ? AND ts >= ?
+            """,
+            (evidence_id, (datetime.now(timezone.utc) - timedelta(seconds=window_seconds)).isoformat().replace("+00:00", "Z")),
+        )
+        row = cursor.fetchone()
+        return int(row["c"] if row else 0)
+    finally:
+        conn.close()
 
 
 # Ensure the schema exists when the module is imported for the first time.

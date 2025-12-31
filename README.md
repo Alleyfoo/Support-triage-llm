@@ -5,6 +5,7 @@ A local-first, headless triage and drafting bot with closed-loop learning. Runs 
 Quick links:
 - English overview: docs/overview_en.md
 - Suomi (FI) overview: docs/overview_fi.md
+- Core contract (how it works): docs/contract.md
 
 What it does:
 - Ingests email/text into a queue (IMAP or API enqueue).

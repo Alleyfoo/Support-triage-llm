@@ -14,6 +14,14 @@ from .triage_service import _extract_json_block, _call_ollama  # reuse helper
 PROMPT_VERSION_REPORT = "report-v1"
 
 
+def _allowed_tools_for_case(case_type: str) -> set[str]:
+    if case_type == "incident":
+        return {"log_evidence", "service_status", "logs", "app_events"}
+    if case_type == "email_delivery":
+        return {"fetch_email_events_sample", "dns_email_auth_check_sample", "email_events", "log_evidence"}
+    return set()
+
+
 def _evidence_refs(bundles: List[Dict[str, Any]]) -> List[str]:
     refs: List[str] = []
     for bundle in bundles:
@@ -82,6 +90,15 @@ def _engineering_escalation(classification: Dict[str, Any], bundles: List[Dict[s
 
 
 def generate_report(triage_json: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    case_type = triage_json.get("case_type") or "unknown"
+    allowed = _allowed_tools_for_case(case_type)
+    if allowed:
+        filtered = []
+        for b in evidence_bundles:
+            tool = (b.get("metadata") or {}).get("tool_name") or b.get("source")
+            if tool in allowed:
+                filtered.append(b)
+        evidence_bundles = filtered
     if config.REPORT_MODE == "llm":
         return _generate_report_llm(triage_json, evidence_bundles)
     return _generate_report_template(triage_json, evidence_bundles)
@@ -128,6 +145,7 @@ def _generate_report_template(triage_json: Dict[str, Any], evidence_bundles: Lis
         "unknown": ["How to report an issue"],
     }
     kb_suggestions = kb_map.get(case_type, ["How to report an issue"])
+    customer_tw = triage_json.get("customer_time_window") or {}
     report = {
         "classification": classification,
         "timeline_summary": _timeline(evidence_bundles),
@@ -135,6 +153,17 @@ def _generate_report_template(triage_json: Dict[str, Any], evidence_bundles: Lis
         "engineering_escalation": _engineering_escalation(classification, evidence_bundles),
         "kb_suggestions": kb_suggestions,
     }
+    # Prepend customer-claimed window if present
+    if customer_tw.get("start") or customer_tw.get("end"):
+        cu = report["customer_update"]
+        claimed = ""
+        if customer_tw.get("start") and customer_tw.get("end"):
+            claimed = f"Customer reports issues between {customer_tw['start']} and {customer_tw['end']} (UTC)."
+        elif customer_tw.get("start"):
+            claimed = f"Customer reports issues since {customer_tw['start']} (UTC)."
+        if claimed and claimed not in cu["body"]:
+            cu["body"] = f"{claimed}\n{cu['body']}".strip()
+            report["customer_update"] = cu
     warnings: List[str] = []
     try:
         validate_payload(report, "final_report.schema.json")
