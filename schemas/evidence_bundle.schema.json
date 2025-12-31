@@ -7,8 +7,9 @@
   "properties": {
     "source": {
       "type": "string",
-      "enum": ["email_events", "app_events", "integration_events", "dns_checks"]
+      "enum": ["email_events", "app_events", "integration_events", "dns_checks", "logs"]
     },
+    "evidence_type": { "type": "string" },
     "time_window": {
       "type": "object",
       "additionalProperties": false,
@@ -18,16 +19,31 @@
         "end": { "type": "string", "format": "date-time" }
       }
     },
-    "tenant": { "type": ["string", "null"] },
-    "summary_counts": {
+    "incident_window": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }
+      }
+    },
+    "tenant": { "type": ["string", "null"] },
+    "observed_incident": { "type": "boolean" },
+    "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "summary_counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 },
       "required": ["sent", "bounced", "deferred", "delivered"],
       "properties": {
         "sent": { "type": "integer", "minimum": 0 },
         "bounced": { "type": "integer", "minimum": 0 },
         "deferred": { "type": "integer", "minimum": 0 },
-        "delivered": { "type": "integer", "minimum": 0 }
+        "delivered": { "type": "integer", "minimum": 0 },
+        "timeouts": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "availability_gaps": { "type": "integer", "minimum": 0 },
+        "total_events": { "type": "integer", "minimum": 0 }
       }
     },
     "metadata": {

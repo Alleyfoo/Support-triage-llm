@@ -3,7 +3,7 @@ triage_schema = {
     "additionalProperties": False,
     "required": ["case_type", "severity", "time_window", "scope", "symptoms", "examples", "missing_info_questions", "suggested_tools", "draft_customer_reply"],
     "properties": {
-        "case_type": {"type": "string", "enum": ["email_delivery", "integration", "ui_bug", "data_import", "access_permissions", "unknown"]},
+        "case_type": {"type": "string", "enum": ["email_delivery", "integration", "ui_bug", "data_import", "access_permissions", "incident", "unknown"]},
         "severity": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
         "time_window": {
             "type": "object",
@@ -70,7 +70,8 @@ evidence_bundle_schema = {
     "additionalProperties": False,
     "required": ["source", "time_window", "tenant", "summary_counts", "events"],
     "properties": {
-        "source": {"type": "string", "enum": ["email_events", "app_events", "integration_events", "dns_checks"]},
+        "source": {"type": "string", "enum": ["email_events", "app_events", "integration_events", "dns_checks", "logs"]},
+        "evidence_type": {"type": "string"},
         "time_window": {
             "type": "object",
             "additionalProperties": False,
@@ -80,16 +81,31 @@ evidence_bundle_schema = {
                 "end": {"type": "string", "format": "date-time"},
             },
         },
-        "tenant": {"type": ["string", "null"]},
-        "summary_counts": {
+        "incident_window": {
             "type": "object",
             "additionalProperties": False,
+            "required": ["start", "end"],
+            "properties": {
+                "start": {"type": "string", "format": "date-time"},
+                "end": {"type": "string", "format": "date-time"},
+            },
+        },
+        "tenant": {"type": ["string", "null"]},
+        "observed_incident": {"type": "boolean"},
+        "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "summary_counts": {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 0},
             "required": ["sent", "bounced", "deferred", "delivered"],
             "properties": {
                 "sent": {"type": "integer", "minimum": 0},
                 "bounced": {"type": "integer", "minimum": 0},
                 "deferred": {"type": "integer", "minimum": 0},
                 "delivered": {"type": "integer", "minimum": 0},
+                "timeouts": {"type": "integer", "minimum": 0},
+                "errors": {"type": "integer", "minimum": 0},
+                "availability_gaps": {"type": "integer", "minimum": 0},
+                "total_events": {"type": "integer", "minimum": 0},
             },
         },
         "events": {

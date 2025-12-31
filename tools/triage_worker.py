@@ -27,6 +27,30 @@ EXPECTED_TOOLS_BY_CASE = {
 }
 
 
+def _has_outage_language(triage_result: Dict[str, Any]) -> bool:
+    text_parts: List[str] = []
+    for field in ["symptoms"]:
+        vals = triage_result.get(field) or []
+        if isinstance(vals, list):
+            text_parts.extend([str(v) for v in vals])
+    draft = triage_result.get("draft_customer_reply", {})
+    if isinstance(draft, dict):
+        text_parts.append(draft.get("body") or "")
+    text = " ".join(text_parts).lower()
+    keywords = ["down", "outage", "unavailable", "downtime", "cannot access", "unresponsive", "timeout"]
+    return any(k in text for k in keywords)
+
+
+def _should_run_log_tool(triage_result: Dict[str, Any]) -> bool:
+    time_window = triage_result.get("time_window") or {}
+    confidence = float(time_window.get("confidence") or 0.0)
+    if confidence < 0.4:
+        return False
+    if triage_result.get("case_type") == "incident":
+        return True
+    return _has_outage_language(triage_result)
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -68,6 +92,19 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
         params = suggestion.get("params") if isinstance(suggestion, dict) else {}
         if name in registry.REGISTRY:
             suggested.append({"name": name, "params": params})
+
+    if _should_run_log_tool(triage_result):
+        existing = {tool["name"] for tool in suggested}
+        if "log_evidence" not in existing:
+            suggested.append(
+                {
+                    "name": "log_evidence",
+                    "params": {
+                        "service": "api",
+                        "query_type": "errors",
+                    },
+                }
+            )
 
     if suggested:
         return suggested
@@ -123,8 +160,18 @@ def process_once(processor_id: str) -> bool:
         for tool in _select_tools(triage_result):
             try:
                 params = tool.get("params") or {}
-                params.setdefault("start", query_tw.get("start"))
-                params.setdefault("end", query_tw.get("end"))
+                if tool["name"] == "log_evidence":
+                    params = dict(params)  # avoid mutating triage suggestion
+                    params["time_window"] = {
+                        "start": query_tw.get("start"),
+                        "end": query_tw.get("end"),
+                    }
+                    params.setdefault("tenant", metadata.get("tenant"))
+                    params.pop("start", None)
+                    params.pop("end", None)
+                else:
+                    params.setdefault("start", query_tw.get("start"))
+                    params.setdefault("end", query_tw.get("end"))
                 bundle = registry.run_tool(tool["name"], params)
                 if "metadata" not in bundle:
                     bundle["metadata"] = {}

@@ -25,6 +25,7 @@
         "ui_bug",
         "data_import",
         "access_permissions",
+        "incident",
         "auth_access",
         "unknown"
       ]

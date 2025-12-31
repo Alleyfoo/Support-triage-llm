@@ -1,0 +1,11 @@
+{"ts": "2025-05-01T10:40:00Z", "service": "api", "level": "info", "event_type": "request", "status_code": 200, "message": "GET /health ok"}
+{"ts": "2025-05-01T10:42:10Z", "service": "api", "level": "error", "event_type": "gateway_error", "status_code": 502, "message": "Upstream gateway error"}
+{"ts": "2025-05-01T10:45:02Z", "service": "api", "level": "error", "event_type": "gateway_error", "status_code": 503, "message": "Service temporarily unavailable"}
+{"ts": "2025-05-01T10:51:30Z", "service": "api", "level": "error", "event_type": "gateway_error", "status_code": 502, "message": "Gateway timeout on /v1/orders"}
+{"ts": "2025-05-01T10:58:00Z", "service": "api", "level": "error", "event_type": "gateway_error", "status_code": 503, "message": "Upstream unavailable"}
+{"ts": "2025-05-01T11:15:00Z", "service": "api", "level": "info", "event_type": "request", "status_code": 200, "message": "POST /v1/orders success"}
+{"ts": "2025-05-01T12:20:00Z", "service": "api", "level": "info", "event_type": "request", "status_code": 200, "message": "GET /v1/customers success"}
+{"ts": "2025-05-01T13:10:10Z", "service": "api", "level": "warn", "event_type": "upstream_timeout", "status_code": 504, "message": "Timeout talking to billing"}
+{"ts": "2025-05-01T13:12:40Z", "service": "api", "level": "warn", "event_type": "upstream_timeout", "status_code": 504, "message": "Timeout talking to billing"}
+{"ts": "2025-05-01T13:15:00Z", "service": "api", "level": "error", "event_type": "upstream_error", "status_code": 502, "message": "Upstream connection closed"}
+{"ts": "2025-05-01T14:05:00Z", "service": "api", "level": "info", "event_type": "request", "status_code": 201, "message": "POST /v1/subscriptions created"}
