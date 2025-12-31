@@ -138,6 +138,22 @@ ALLOWED_UPDATE_FIELDS = {
     "created_at",
 }
 
+ALLOWED_STATUS_TRANSITIONS = {
+    "queued": {"processing", "queued", "dead_letter"},
+    "processing": {"triaged", "queued", "dead_letter", "responded", "handoff"},
+    "triaged": {"awaiting_human", "approved", "rewrite", "escalate_pending", "triaged", "responded"},
+    "awaiting_human": {"approved", "rewrite", "escalate_pending", "awaiting_human", "responded"},
+    "approved": {"responded", "approved"},
+    "rewrite": {"triaged", "rewrite"},
+    "escalate_pending": {"triaged", "escalate_pending"},
+    "responded": {"delivered", "responded"},
+    "delivered": {"delivered"},
+    "handoff": {"delivered", "responded", "handoff"},
+    "dead_letter": {"dead_letter"},
+}
+
+TRIAGE_COMPLETE_STATES = {"triaged", "awaiting_human", "approved", "rewrite", "escalate_pending", "responded", "delivered"}
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -354,11 +370,40 @@ def claim_row(processor_id: str) -> Optional[Dict[str, Any]]:
 
 def update_row_status(row_id: int, status: str, **kwargs: Any) -> None:
     """Update status and any supported fields on a queue row."""
+    new_status = str(status)
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM queue WHERE id = ?", (row_id,))
+        existing_row = cursor.fetchone()
+        if not existing_row:
+            raise ValueError(f"Queue row {row_id} not found")
+        current_status = str(existing_row["status"] or "").lower()
+        target_status = new_status.lower()
+
+        if target_status != current_status:
+            allowed = ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
+            if target_status not in allowed:
+                raise ValueError(f"Invalid status transition {current_status} -> {target_status}")
+
+        existing = _row_to_dict(existing_row)
+    finally:
+        conn.close()
+
     updates: Dict[str, Any] = {"status": status}
     for key, value in kwargs.items():
         if key not in ALLOWED_UPDATE_FIELDS:
             continue
         updates[key] = _maybe_json_dump(key, value)
+
+    if target_status in TRIAGE_COMPLETE_STATES:
+        triage_json = kwargs.get("triage_json") or existing.get("triage_json")
+        draft_subject = kwargs.get("triage_draft_subject") or kwargs.get("draft_customer_reply_subject") or existing.get("triage_draft_subject") or existing.get("draft_customer_reply_subject")
+        draft_body = kwargs.get("triage_draft_body") or kwargs.get("draft_customer_reply_body") or existing.get("triage_draft_body") or existing.get("draft_customer_reply_body")
+        if not triage_json:
+            raise ValueError(f"triage_json is required when setting status to {status}")
+        if not draft_subject or not draft_body:
+            raise ValueError(f"triage draft subject/body required when setting status to {status}")
 
     if "finished_at" not in updates and status in {"responded", "delivered", "handoff"}:
         updates["finished_at"] = _now_iso()

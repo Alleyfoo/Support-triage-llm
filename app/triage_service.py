@@ -87,33 +87,36 @@ def _infer_severity(text: str) -> str:
 
 def _extract_time_fields(text: str) -> Dict[str, Any]:
     lower = text.lower()
-    time_window = {"start": None, "end": None, "confidence": 0.1}
+    parsed = parse_time_window(text)
+    time_window = {
+        "start": parsed.get("start"),
+        "end": parsed.get("end"),
+        "confidence": parsed.get("confidence", 0.0),
+    }
     reported = {
         "raw_text": None,
         "timezone": None,
         "has_date": False,
         "has_only_clock_time": False,
-        "confidence": 0.1,
+        "confidence": time_window["confidence"],
     }
     time_ambiguity = "missing_date"
 
     iso = ISO_PATTERN.search(text)
     if iso:
-        try:
-            dt = datetime.fromisoformat(iso.group(0))
-            time_window = {"start": dt.isoformat() + "Z", "end": None, "confidence": 0.8}
-            reported.update({"raw_text": iso.group(0), "timezone": None, "has_date": True, "has_only_clock_time": False, "confidence": 0.8})
-            time_ambiguity = "none"
-            return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
-        except Exception:
-            pass
+        raw = iso.group(0)
+        reported.update(
+            {"raw_text": raw, "timezone": None, "has_date": True, "has_only_clock_time": False, "confidence": max(time_window["confidence"], 0.8)}
+        )
+        time_ambiguity = "none"
+        return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
 
     range_match = TIME_RANGE_RE.search(text)
     if range_match:
         raw = range_match.group(0)
         tz = "UTC" if "utc" in lower else None
         reported.update(
-            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": 0.5}
+            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": max(time_window["confidence"], 0.5)}
         )
         time_ambiguity = "missing_date"
         return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
@@ -122,13 +125,13 @@ def _extract_time_fields(text: str) -> Dict[str, Any]:
         raw = CLOCK_RE.search(text).group(0)
         tz = "UTC" if "utc" in lower else None
         reported.update(
-            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": 0.4}
+            {"raw_text": raw, "timezone": tz, "has_date": False, "has_only_clock_time": True, "confidence": max(time_window["confidence"], 0.4)}
         )
         time_ambiguity = "missing_date" if tz else "missing_timezone"
         return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
 
     if any(token in lower for token in ["yesterday", "last night", "since yesterday", "earlier today"]):
-        reported.update({"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": 0.2})
+        reported.update({"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": max(time_window["confidence"], 0.2)})
         time_ambiguity = "relative_ambiguous"
         return {"time_window": time_window, "reported_time_window": reported, "time_ambiguity": time_ambiguity}
 
@@ -230,6 +233,26 @@ def _enrich_from_heuristic(text: str, payload: Dict[str, Any], metadata: Dict[st
         payload["reported_time_window"] = base.get("reported_time_window", {})
     if not payload.get("time_ambiguity"):
         payload["time_ambiguity"] = base.get("time_ambiguity", "missing_date")
+    return payload
+
+
+def _apply_confidence_routing(raw_text: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Adjust severity and questions when time confidence or scope is weak."""
+    scope = payload.get("scope") or {}
+    time_window = payload.get("time_window") or {}
+    time_conf = float(time_window.get("confidence") or 0.0)
+    missing_scope = not scope.get("affected_tenants") and not scope.get("recipient_domains")
+    requires_more_info = time_conf < 0.3 or missing_scope
+
+    if requires_more_info:
+        severity = (payload.get("severity") or "medium").lower()
+        if severity in {"critical", "high"}:
+            payload["severity"] = "medium"
+        questions = payload.get("missing_info_questions") or []
+        if not questions:
+            domains = scope.get("recipient_domains") or _detect_domains(raw_text)
+            reported = payload.get("reported_time_window") or {"raw_text": None, "timezone": None, "has_date": False, "has_only_clock_time": False, "confidence": 0.1}
+            payload["missing_info_questions"] = _build_missing_questions(domains, reported, payload.get("time_ambiguity") or "missing_date")
     return payload
 
 
@@ -455,6 +478,7 @@ def triage(raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str
     meta["redacted_text"] = redaction["redacted_text"]
     meta["case_id"] = metadata.get("case_id")
     triage_payload["_meta"] = meta
+    triage_payload = _apply_confidence_routing(text, triage_payload)
 
     # Ensure redacted snippets persist in symptoms/draft when PII was removed.
     if meta.get("redaction_applied") and redaction.get("redacted_text"):

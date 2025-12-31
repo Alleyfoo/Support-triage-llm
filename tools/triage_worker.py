@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 from uuid import uuid4
 import hashlib
 
-from app import queue_db
+from app import knowledge, queue_db
 from app.triage_service import triage
 from app.validation import SchemaValidationError
 from app import report_service, config, metrics
@@ -88,6 +88,66 @@ def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
     return fallback
 
 
+def _count_summary(field: str, bundles: List[Dict[str, Any]]) -> int:
+    total = 0
+    for bundle in bundles:
+        counts = bundle.get("summary_counts") or {}
+        total += int(counts.get(field) or 0)
+    return total
+
+
+def _load_truth_table() -> Dict[str, str]:
+    try:
+        return knowledge.load_knowledge()
+    except Exception:
+        return {}
+
+
+def _guard_draft_claims(triage_result: Dict[str, Any], evidence_bundles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Ensure the customer draft avoids unsupported factual claims."""
+    draft = dict(triage_result.get("draft_customer_reply") or {"subject": "", "body": ""})
+    draft_text = f"{draft.get('subject','')} {draft.get('body','')}".lower()
+    if not draft_text.strip():
+        return {"draft": draft, "warnings": []}
+
+    evidence_text = json.dumps(evidence_bundles, ensure_ascii=False).lower()
+    truth_table = _load_truth_table()
+    truth_text = " ".join(truth_table.values()).lower()
+    checks = {
+        "bounce": lambda: ("bounce" in evidence_text) or _count_summary("bounced", evidence_bundles) > 0 or "bounce" in truth_text,
+        "quarantine": lambda: "quarantine" in evidence_text or "quarantine" in truth_text,
+        "dmarc": lambda: "dmarc" in evidence_text or "dmarc" in truth_text,
+        "spf": lambda: "spf" in evidence_text or "spf" in truth_text,
+        "rate limit": lambda: "rate limit" in evidence_text or "429" in evidence_text or "rate limit" in truth_text,
+        "auth failed": lambda: "auth_failed" in evidence_text or "token expired" in evidence_text or "auth failed" in truth_text,
+        "workflow disabled": lambda: "workflow_disabled" in evidence_text or "workflow disabled" in truth_text,
+    }
+
+    unsupported = []
+    for keyword, predicate in checks.items():
+        if keyword in draft_text and not predicate():
+            unsupported.append(keyword)
+
+    warnings: List[str] = []
+    if unsupported:
+        warnings.append(f"unsupported_claims:{','.join(sorted(set(unsupported)))}")
+        questions = triage_result.get("missing_info_questions") or []
+        safe_body_lines = [
+            "Thanks for reaching out. We are still gathering evidence before confirming the exact cause.",
+        ]
+        if questions:
+            safe_body_lines.append("To help us move faster, could you share:")
+            safe_body_lines.extend(f"- {q}" for q in questions[:6])
+        else:
+            safe_body_lines.append("We'll follow up with more details once we finish collecting evidence.")
+        fallback_subject = draft.get("subject") or "Quick update on your report"
+        draft = {
+            "subject": fallback_subject,
+            "body": "\n".join(safe_body_lines),
+        }
+    return {"draft": draft, "warnings": warnings}
+
+
 def process_once(processor_id: str) -> bool:
     row = queue_db.claim_row(processor_id)
     if not row:
@@ -134,6 +194,9 @@ def process_once(processor_id: str) -> bool:
             except Exception as exc:
                 evidence_sources_run.append(f"{tool['name']}:error:{exc}")
 
+        draft_guard = _guard_draft_claims(triage_result, evidence_bundles)
+        triage_result["draft_customer_reply"] = draft_guard["draft"]
+
         final_report = report_service.generate_report(triage_result, evidence_bundles)
         report_meta = final_report.pop("_meta", {})
         queue_db.update_row_status(
@@ -163,7 +226,7 @@ def process_once(processor_id: str) -> bool:
             evidence_sources_run=evidence_sources_run,
             evidence_created_at=_now_iso(),
             final_report_json=final_report,
-            response_metadata={"triage_meta": meta, "report_meta": report_meta},
+            response_metadata={"triage_meta": meta, "report_meta": report_meta, "draft_warnings": draft_guard.get("warnings")},
             case_id=meta.get("case_id") or row.get("case_id") or row.get("conversation_id"),
         )
         print(f"Processed triage for case={meta.get('case_id') or row.get('case_id') or row['id']} status=triaged latency={elapsed:.3f}s")
