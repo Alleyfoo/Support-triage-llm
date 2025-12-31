@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Optional
 import jsonschema
 
 from app.validation import load_schema, SchemaValidationError
+from tools.log_evidence import run_log_evidence
 
 
 @dataclass
@@ -219,6 +220,26 @@ _FILE_PARAMS_SCHEMA: Dict[str, Any] = {
     "required": ["file_path"],
 }
 
+_LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "service": {"type": "string"},
+        "query_type": {"type": "string", "enum": ["errors", "timeouts", "availability"]},
+        "time_window": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["start", "end"],
+            "properties": {
+                "start": {"type": "string", "format": "date-time"},
+                "end": {"type": "string", "format": "date-time"},
+            },
+        },
+        "tenant": {"type": ["string", "null"]},
+    },
+    "required": ["service", "time_window", "query_type"],
+}
+
 
 def _build_registry() -> Dict[str, Tool]:
     evidence_schema = _load_evidence_schema()
@@ -264,6 +285,12 @@ def _build_registry() -> Dict[str, Tool]:
             params_schema=_FILE_PARAMS_SCHEMA,
             result_schema=evidence_schema,
             fn=_app_log_events_file,
+        ),
+        "log_evidence": Tool(
+            name="log_evidence",
+            params_schema=_LOG_EVIDENCE_PARAMS_SCHEMA,
+            result_schema=evidence_schema,
+            fn=run_log_evidence,
         ),
     }
 

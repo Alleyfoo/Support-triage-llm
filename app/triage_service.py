@@ -55,6 +55,8 @@ _EXAMPLE_RETRIEVER = ExampleRetriever(Path(config.GOLDEN_DATASET_PATH), max_exam
 
 def _infer_case_type(text: str) -> str:
     lower = text.lower()
+    if any(token in lower for token in ["outage", "downtime", "service unavailable", "site down", "system down"]):
+        return "incident"
     if "webhook" in lower or "integration" in lower or "api" in lower or "sync" in lower or "connector" in lower:
         return "integration"
     if "bounce" in lower or "deliver" in lower or "email" in lower:
