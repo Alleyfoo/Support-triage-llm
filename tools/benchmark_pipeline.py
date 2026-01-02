@@ -17,7 +17,11 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from app.pipeline import run_pipeline, load_knowledge
+from app.features import require_pipeline_enabled
+
+require_pipeline_enabled()
+
+from app.extensions.pipeline import run_pipeline, load_knowledge
 from app.slm_llamacpp import build_prompt
 
 

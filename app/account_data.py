@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Optional
 
-import pandas as pd
+import json
 
 from .audit import log_file_access, log_function_call
 from .config import ACCOUNT_DATA_PATH
@@ -26,8 +26,26 @@ def load_account_records(path: Optional[str] = None) -> Dict[str, Dict[str, str]
         log_function_call('load_account_records', stage='completed', path=path_str, records=0)
         return {}
 
+    records: Dict[str, Dict[str, str]] = {}
+    suffix = data_path.suffix.lower()
     try:
-        df = pd.read_excel(data_path)
+        if suffix in {".json"}:
+            raw = json.loads(data_path.read_text(encoding="utf-8"))
+            rows = raw if isinstance(raw, list) else []
+        elif suffix in {".csv", ".tsv"}:
+            import pandas as pd  # type: ignore
+
+            df = pd.read_csv(data_path)
+            rows = df.to_dict("records")
+        elif suffix in {".xlsx", ".xls"}:
+            try:
+                import pandas as pd  # type: ignore
+            except Exception as exc:
+                raise ImportError("pandas/openpyxl required to read Excel account records") from exc
+            df = pd.read_excel(data_path)
+            rows = df.to_dict("records")
+        else:
+            raise ValueError(f"Unsupported account data format: {data_path.suffix}")
     except Exception as exc:
         log_file_access(
             data_path,
@@ -43,10 +61,11 @@ def load_account_records(path: Optional[str] = None) -> Dict[str, Dict[str, str]
         operation='read',
         status='success',
         source='account_records',
-        rows=int(len(df)),
+        rows=len(rows),
     )
-    records: Dict[str, Dict[str, str]] = {}
-    for row in df.to_dict("records"):
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
         raw_email = row.get("email")
         if raw_email is None:
             continue
@@ -59,8 +78,6 @@ def load_account_records(path: Optional[str] = None) -> Dict[str, Dict[str, str]
             if key == "email":
                 continue
             if value is None:
-                continue
-            if isinstance(value, float) and pd.isna(value):
                 continue
             clean_row[key] = str(value).strip()
 

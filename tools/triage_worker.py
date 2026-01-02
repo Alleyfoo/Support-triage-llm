@@ -429,7 +429,12 @@ def process_once(processor_id: str) -> bool:
                         "end": query_tw.get("end"),
                     }
                     params.setdefault("tenant", metadata.get("tenant"))
-                    params.setdefault("service", metadata.get("tenant") or "api")
+                    params.setdefault("service", (resolved.get("entitled_services") or ["api"])[0] if isinstance(resolved.get("entitled_services"), list) and resolved.get("entitled_services") else metadata.get("tenant") or "api")
+                    params["incident_window"] = {
+                        "start": customer_tw.get("start"),
+                        "end": customer_tw.get("end"),
+                    }
+                    params["reason"] = "customer_reported_outage"
                     params.pop("start", None)
                     params.pop("end", None)
                 elif tool["name"].startswith("fetch_"):

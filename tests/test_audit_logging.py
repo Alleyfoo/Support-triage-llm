@@ -3,9 +3,14 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import account_data, config, knowledge, pipeline
+try:
+    from app import account_data, config, knowledge, pipeline
+except ImportError:
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
 
 
 def _read_audit_entries(path: Path) -> list[dict]:

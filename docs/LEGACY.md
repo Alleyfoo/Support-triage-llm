@@ -1,13 +1,13 @@
 # Legacy Chatbot Paths
 
-This project pivoted to the Support Triage Copilot (`/triage/*`). The older chatbot flow (`/chat/*`, Excel-era docs) still exists but is not the primary path.
+This project pivoted to the Support Triage Copilot (`/triage/*`). The older chatbot + Excel queue flows still exist for historical reference but are not the primary path.
 
-What remains:
-- `/chat/enqueue` API
-- Legacy docs under `docs/` (chat_queue_design, chat_runbook, etc.)
-- Older tools/tests referencing the chatbot pipeline
+What remains (archived):
+- Chatbot + Excel queue code now lives under `legacy/chat` and `legacy/excel_queue`.
+- Legacy docs were moved to `docs/legacy/` (chat queue design/runbook/migration, archived runbooks/design docs, templates).
+- Legacy tests are parked in `legacy/tests` and are not part of the main suite.
 
 How to treat it:
-- Triaging is the default: use `/triage/enqueue`, worker `tools/triage_worker.py`, and the Streamlit review UI.
-- Legacy pieces are kept for reference/backward compatibility. CI focuses on triage; load tests target `/triage/enqueue`.
-- When updating, prefer the triage stack; only touch legacy if you explicitly need the chatbot demo.
+- Core product scope: triage copilot (SQLite queue + worker + Streamlit UI).
+- Pipeline subsystem is an optional extension (enable with `FEATURE_PIPELINE=1`); not required for daily Tier-2 ops.
+- Only touch the `legacy/` tree if you explicitly need the old chat/Excel demo; keep production paths on the SQLite-backed triage stack.

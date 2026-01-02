@@ -1,0 +1,1 @@
+We saw some timeouts on May 2 around 16:00 UTC and believe the API was down briefly. Please confirm whether there was an outage.

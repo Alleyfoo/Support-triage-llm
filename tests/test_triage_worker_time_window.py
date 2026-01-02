@@ -35,6 +35,7 @@ def test_append_log_statement_observed_and_clean():
     log_bundle = {
         "evidence_type": "logs",
         "observed_incident": True,
+        "decision": "corroborated",
         "incident_window": {"start": "2025-05-01T10:40:00Z", "end": "2025-05-01T10:58:00Z"},
         "metadata": {"query_type": "availability"},
     }
@@ -46,6 +47,7 @@ def test_append_log_statement_observed_and_clean():
     clean_bundle = {
         "evidence_type": "logs",
         "observed_incident": False,
+        "decision": "not_observed",
         "incident_window": {"start": "2025-05-01T10:40:00Z", "end": "2025-05-01T10:58:00Z"},
         "metadata": {"query_type": "errors"},
     }

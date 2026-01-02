@@ -1,0 +1,1 @@
+Customers are reporting that the API was down around 10:45 UTC on May 1. Multiple tenants could not access the inbox and we need confirmation.

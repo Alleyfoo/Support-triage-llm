@@ -27,6 +27,19 @@ def _parse_float_default(default: float, *names: str) -> float:
     return default
 
 
+def _parse_bool_default(default: bool, *names: str) -> bool:
+    for name in names:
+        raw = os.environ.get(name)
+        if raw is None or raw == "":
+            continue
+        lowered = raw.strip().lower()
+        if lowered in {"1", "true", "yes", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "off"}:
+            return False
+    return default
+
+
 def _require_env(name: str) -> str:
     value = os.environ.get(name)
     if value is None or value == "":
@@ -49,16 +62,18 @@ REQUIRE_API_KEY = (os.environ.get("REQUIRE_API_KEY") or "false").lower() == "tru
 INGEST_API_KEY: Optional[str] = _require_env("INGEST_API_KEY") if REQUIRE_API_KEY else os.environ.get("INGEST_API_KEY")
 KNOWLEDGE_TEMPLATE = os.environ.get(
     "KNOWLEDGE_TEMPLATE",
-    str(Path(__file__).resolve().parent.parent / "docs" / "customer_service_template.md"),
+    str(Path(__file__).resolve().parent.parent / "data" / "knowledge.md"),
 )
 KNOWLEDGE_SOURCE = os.environ.get("KNOWLEDGE_SOURCE")
 KNOWLEDGE_SOURCE_FI = os.environ.get("KNOWLEDGE_SOURCE_FI")
 KNOWLEDGE_SOURCE_SV = os.environ.get("KNOWLEDGE_SOURCE_SV")
 KNOWLEDGE_SOURCE_EN = os.environ.get("KNOWLEDGE_SOURCE_EN")
 KNOWLEDGE_CACHE_TTL = _parse_int_default(60, "KNOWLEDGE_CACHE_TTL")
-PIPELINE_LOG_PATH = os.environ.get(
-    "PIPELINE_LOG_PATH",
-    str(Path(__file__).resolve().parent.parent / "data" / "pipeline_history.xlsx"),
+FEATURE_PIPELINE = _parse_bool_default(False, "FEATURE_PIPELINE")
+PIPELINE_LOG_PATH = (
+    os.environ.get("PIPELINE_LOG_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "pipeline_history.xlsx")
+    if FEATURE_PIPELINE
+    else None
 )
 
 AUDIT_LOG_PATH = os.environ.get(
@@ -68,7 +83,7 @@ AUDIT_LOG_PATH = os.environ.get(
 
 ACCOUNT_DATA_PATH = os.environ.get(
     "ACCOUNT_DATA_PATH",
-    str(Path(__file__).resolve().parent.parent / "data" / "account_records.xlsx"),
+    str(Path(__file__).resolve().parent.parent / "data" / "account_records.json"),
 )
 
 DB_PATH = os.environ.get("DB_PATH") or os.environ.get("QUEUE_DB_PATH") or str(Path(__file__).resolve().parent.parent / "data" / "queue.db")

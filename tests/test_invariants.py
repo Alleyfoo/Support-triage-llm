@@ -5,7 +5,12 @@ import pytest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import app.pipeline as pipeline
+from app.features import pipeline_enabled
+
+if not pipeline_enabled():
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
+
+import app.extensions.pipeline as pipeline
 
 
 def test_partial_score_when_value_missing(monkeypatch):

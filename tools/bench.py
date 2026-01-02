@@ -12,7 +12,11 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
-from app.pipeline import run_pipeline
+from app.features import require_pipeline_enabled
+
+require_pipeline_enabled()
+
+from app.extensions.pipeline import run_pipeline
 from app.io_utils import parse_terms
 
 

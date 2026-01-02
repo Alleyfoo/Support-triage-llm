@@ -6,29 +6,30 @@ from __future__ import annotations
 import logging
 import os
 import time
-from pathlib import Path
 
 import schedule
 
-from tools import email_ingest, triage_worker, sync_drafts, watch_sent, run_learning_cycle
+from tools import triage_worker, sync_drafts, watch_sent, run_learning_cycle, imap_ingest_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("daemon")
 
 
 def job_ingest() -> None:
-    log.info("[Daemon] Ingesting emails...")
     host = os.environ.get("IMAP_HOST")
     user = os.environ.get("IMAP_USERNAME")
     pwd = os.environ.get("IMAP_PASSWORD")
     if not (host and user and pwd):
-        log.info("IMAP env not set; skipping ingest.")
+        log.info("[Daemon] IMAP not configured; skipping ingest.")
         return
-    queue_path = Path(os.environ.get("EMAIL_QUEUE_PATH") or "data/email_queue.xlsx")
     try:
-        email_ingest.ingest_imap(queue_path, clean=True, retain_raw=True, detect_keys=True)
+        processed = imap_ingest_db.ingest_from_env(limit=int(os.environ.get("IMAP_DAEMON_LIMIT") or 25))
+        if processed:
+            log.info("[Daemon] Ingested %s new message(s) from IMAP.", processed)
+        else:
+            log.info("[Daemon] IMAP ingest found no new messages.")
     except Exception as exc:
-        log.exception("Ingest failed: %s", exc)
+        log.exception("IMAP ingest failed: %s", exc)
 
 
 def job_triage() -> None:

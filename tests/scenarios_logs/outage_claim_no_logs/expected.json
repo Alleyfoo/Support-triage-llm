@@ -1,0 +1,15 @@
+{
+  "case_type": "incident",
+  "service": "api",
+  "decision": "not_observed",
+  "observed_incident": false,
+  "anchor": "2025-05-02T12:00:00Z",
+  "time_window": {
+    "start": "2025-05-02T15:00:00Z",
+    "end": "2025-05-02T17:00:00Z"
+  },
+  "incident_window": {
+    "start": "2025-05-02T15:00:00Z",
+    "end": "2025-05-02T17:00:00Z"
+  }
+}

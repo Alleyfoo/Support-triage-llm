@@ -1,12 +1,16 @@
-# Support Triage Copilot — Agent Guide Book
+# Support Triage Copilot — Agent Guide
 
-This guide is split for quick navigation:
-- DESIGN.md — system intent, rails, schemas, tools, and prompt rules.
-- RUNBOOK.md — guardrails, quality gates, milestones, workflow, and definition of done.
+Start here:
+- Follow `README.md` → Quick start to launch the daemon (Docker or `python tools/daemon.py`).
+- Check health with `python tools/status.py`; triage runs against the SQLite queue by default.
+- Drafts sync to your IMAP Drafts folder; nothing auto-sends. Keep the Internal Ref footer intact.
 
-Quick orientation:
-- Local-first, auditable support triage copilot (deterministic queue/worker; allowlisted tools; PII redaction; audit trail).
-- Outputs: structured triage JSON, evidence-backed timelines, customer + escalation drafts (human-reviewed before send).
-- Tooling: deterministic retrieval, LLM for narration; allowlist only; minimal data with redaction-first.
+Daily workflow:
+- Ingest: use `/triage/enqueue` (or `tools/ingest_eml.py`) to drop customer messages into the queue.
+- Triage: `tools/triage_worker.py` processes queued items, suggests tools, and drafts replies.
+- Review: edit drafts in your mail client; sent-mail feedback is ingested by the daemon for learning.
 
-See DESIGN.md and RUNBOOK.md for the full details.
+More detail:
+- Design rails and schemas: `DESIGN.md`, `schemas/*.json`
+- Runbook and guardrails: `RUNBOOK.md`, `docs/specs/FEEDBACK_LOOP.md`
+- Legacy chat/Excel flows are archived under `legacy/` with docs in `docs/legacy/`.

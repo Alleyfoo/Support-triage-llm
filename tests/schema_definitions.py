@@ -71,6 +71,7 @@ evidence_bundle_schema = {
     "required": ["source", "time_window", "tenant", "summary_counts", "events"],
     "properties": {
         "source": {"type": "string", "enum": ["email_events", "app_events", "integration_events", "dns_checks", "logs"]},
+        "service": {"type": ["string", "null"]},
         "evidence_type": {"type": "string"},
         "time_window": {
             "type": "object",
@@ -92,11 +93,15 @@ evidence_bundle_schema = {
         },
         "tenant": {"type": ["string", "null"]},
         "observed_incident": {"type": "boolean"},
+        "decision": {"type": "string", "enum": ["corroborated", "inconclusive", "not_observed"]},
+        "incident_score": {"type": "integer", "minimum": 0, "maximum": 100},
+        "incident_signals": {"type": "array", "items": {"type": "string"}},
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "summary_external": {"type": "string"},
+        "summary_internal": {"type": "string"},
         "summary_counts": {
             "type": "object",
-            "additionalProperties": {"type": "integer", "minimum": 0},
-            "required": ["sent", "bounced", "deferred", "delivered"],
+            "additionalProperties": True,
             "properties": {
                 "sent": {"type": "integer", "minimum": 0},
                 "bounced": {"type": "integer", "minimum": 0},
@@ -104,8 +109,13 @@ evidence_bundle_schema = {
                 "delivered": {"type": "integer", "minimum": 0},
                 "timeouts": {"type": "integer", "minimum": 0},
                 "errors": {"type": "integer", "minimum": 0},
+                "warnings": {"type": "integer", "minimum": 0},
+                "info": {"type": "integer", "minimum": 0},
                 "availability_gaps": {"type": "integer", "minimum": 0},
                 "total_events": {"type": "integer", "minimum": 0},
+                "first_ts": {"type": ["string", "null"], "format": "date-time"},
+                "last_ts": {"type": ["string", "null"], "format": "date-time"},
+                "unique_error_types": {"type": "array", "items": {"type": "string"}},
             },
         },
         "events": {
@@ -117,7 +127,7 @@ evidence_bundle_schema = {
                 "properties": {
                     "ts": {"type": "string", "format": "date-time"},
                     "type": {"type": "string"},
-                    "id": {"type": "string"},
+                    "id": {"type": ["string", "null"]},
                     "message_id": {"type": ["string", "null"]},
                     "detail": {"type": "string"},
                 },

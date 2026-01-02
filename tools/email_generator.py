@@ -149,7 +149,7 @@ def generate_eml(out_dir: Path, count: int, cases: Sequence[str], *, domain: str
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate demo .eml files")
-    ap.add_argument("--out-dir", default="notebooks/data/inbox", help="Output folder for .eml files")
+ap.add_argument("--out-dir", default="data/demo_inbox", help="Output folder for .eml files")
     ap.add_argument("--count", type=int, default=20, help="Number of emails to generate")
     ap.add_argument("--cases", nargs="*", help="Subset of case keys to use (default: a curated mix)")
     ap.add_argument("--domain", default="example.com", help="Sender email domain")
@@ -170,4 +170,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

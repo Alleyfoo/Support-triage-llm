@@ -1,0 +1,17 @@
+{
+  "case_type": "unknown",
+  "service": "worker",
+  "decision": "not_observed",
+  "observed_incident": false,
+  "anchor": "2025-05-01T13:00:00Z",
+  "time_window": {
+    "start": "2025-05-01T13:30:00Z",
+    "end": "2025-05-01T14:30:00Z"
+  },
+  "incident_window": {
+    "start": "2025-05-01T14:00:00Z",
+    "end": "2025-05-01T14:10:00Z"
+  },
+  "log_entry_min": 1,
+  "incident_start_prefix": "2025-05-01T14:00"
+}

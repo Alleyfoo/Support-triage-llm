@@ -227,6 +227,14 @@ _LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
     "properties": {
         "service": {"type": ["string", "null"]},
         "query_type": {"type": "string", "enum": ["errors", "timeouts", "availability"]},
+        "incident_window": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "start": {"type": ["string", "null"], "format": "date-time"},
+                "end": {"type": ["string", "null"], "format": "date-time"},
+            },
+        },
         "time_window": {
             "type": "object",
             "additionalProperties": False,
@@ -237,6 +245,7 @@ _LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
             },
         },
         "tenant": {"type": ["string", "null"]},
+        "reason": {"type": ["string", "null"]},
     },
     "required": ["time_window", "query_type"],
 }

@@ -1,9 +1,16 @@
 import os
 import sys
 
+import pytest
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.pipeline import detect_expected_keys, run_pipeline
+from app.features import pipeline_enabled
+
+if not pipeline_enabled():
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
+
+from app.extensions.pipeline import detect_expected_keys, run_pipeline
 
 
 def test_metadata_overrides_detection():

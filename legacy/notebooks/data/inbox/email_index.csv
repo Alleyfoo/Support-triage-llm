@@ -1,0 +1,6 @@
+id,filename,case,from,to,subject
+1,email_0001_company_background.eml,company_background,Bob <bob@example.com>,Support <support@aurora.local>,Question about your company
+2,email_0002_support_hours.eml,support_hours,Carol <carol@example.com>,Support <support@aurora.local>,Support hours
+3,email_0003_warranty.eml,warranty,Dave <dave@example.com>,Support <support@aurora.local>,Warranty coverage
+4,email_0004_returns.eml,returns,Eve <eve@example.com>,Support <support@aurora.local>,Returns question
+5,email_0005_shipping.eml,shipping,Frank <frank@example.com>,Support <support@aurora.local>,Shipping timeline

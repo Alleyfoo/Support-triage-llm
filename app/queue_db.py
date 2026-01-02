@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS queue (
     case_id TEXT,
     message_id TEXT UNIQUE,
     idempotency_key TEXT,
+    source_message_key TEXT,
     retry_count INTEGER DEFAULT 0,
     available_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     conversation_id TEXT,
@@ -221,6 +222,8 @@ ALLOWED_UPDATE_FIELDS = {
     "edit_distance",
     "feedback_source",
     "closed_loop_at",
+    "draft_synced_at",
+    "draft_message_id",
     "created_at",
 }
 
@@ -281,6 +284,7 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     desired = {
         "case_id": "TEXT",
         "idempotency_key": "TEXT",
+        "source_message_key": "TEXT",
         "retry_count": "INTEGER",
         "available_at": "TEXT",
         "triage_json": "TEXT",
@@ -314,6 +318,8 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "edit_distance": "REAL",
         "feedback_source": "TEXT",
         "closed_loop_at": "TEXT",
+        "draft_synced_at": "TEXT",
+        "draft_message_id": "TEXT",
     }
     for name, col_type in desired.items():
         if name not in existing:

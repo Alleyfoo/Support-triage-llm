@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from app.io_utils import read_table, write_table, serialize
+from app.features import require_pipeline_enabled
+
+require_pipeline_enabled()
 
 
 def parse_expected_keys(raw) -> List[str]:
@@ -34,7 +37,7 @@ def main() -> None:
         print("MODEL_PATH not set - falling back to deterministic stub replies.")
 
     t0 = time.time()
-    from app.pipeline import run_pipeline
+    from app.extensions.pipeline import run_pipeline
 
     inp = Path(args.input)
     out = Path(args.output) if args.output else inp.with_suffix(".replies.csv")

@@ -1,0 +1,16 @@
+{
+  "case_type": "integration",
+  "service": "api",
+  "decision": "corroborated",
+  "observed_incident": true,
+  "time_window": {
+    "start": "2025-05-01T10:40:00Z",
+    "end": "2025-05-01T11:05:00Z"
+  },
+  "incident_window": {
+    "start": "2025-05-01T10:45:10Z",
+    "end": "2025-05-01T10:58:00Z"
+  },
+  "incident_start_prefix": "2025-05-01T10:45",
+  "incident_end_prefix": "2025-05-01T10:58"
+}

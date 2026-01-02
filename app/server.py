@@ -1,7 +1,6 @@
 import os
 import socket
 import hashlib
-from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -9,15 +8,14 @@ from fastapi import Depends, FastAPI, HTTPException, Security, Request
 from fastapi.security import APIKeyHeader
 
 from . import config, queue_db
-from .pipeline import run_pipeline
+from .features import pipeline_enabled, require_pipeline_enabled
 from .schemas import ChatEnqueueRequest, EmailRequest, EmailResponse, TriageRequest
 from .triage_service import triage
 from .metrics_api import router as metrics_router
-from tools import chat_ingest, evidence_runner
+from tools import evidence_runner
 
 app = FastAPI()
 MODEL_READY = True
-CHAT_QUEUE_PATH = Path("data/email_queue.xlsx")
 USE_DB_QUEUE = os.environ.get("USE_DB_QUEUE", "true").lower() == "true"
 API_KEY_NAME = "X-API-KEY"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -85,6 +83,12 @@ def healthz() -> Dict[str, Any]:
 
 @app.post("/reply", response_model=EmailResponse)
 def reply(req: EmailRequest) -> EmailResponse:
+    if not pipeline_enabled():
+        raise HTTPException(status_code=503, detail="Pipeline feature disabled. Set FEATURE_PIPELINE=1 to enable.")
+    require_pipeline_enabled()
+    # import inside handler to avoid loading when the feature is disabled
+    from app.extensions.pipeline import run_pipeline  # pylint: disable=import-outside-toplevel
+
     metadata: Dict[str, Any] = {}
     if req.expected_keys:
         metadata["expected_keys"] = req.expected_keys
@@ -113,8 +117,7 @@ def enqueue_chat(payload: ChatEnqueueRequest) -> Dict[str, int]:
         queue_id, created = queue_db.insert_message(message)
         return {"enqueued": 1 if created else 0, "queue_id": queue_id, "deduped": not created}
 
-    count = chat_ingest.ingest_messages(CHAT_QUEUE_PATH, [message])
-    return {"enqueued": count}
+    raise HTTPException(status_code=503, detail="Excel-backed chat queue is deprecated; set USE_DB_QUEUE=true to use SQLite.")
 
 
 @app.post("/triage/run")

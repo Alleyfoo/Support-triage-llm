@@ -3,8 +3,15 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import pytest
+
+from app.features import pipeline_enabled
+
+if not pipeline_enabled():
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
+
 from app.knowledge import load_knowledge
-from app.pipeline import run_pipeline
+from app.extensions.pipeline import run_pipeline
 
 
 def test_reply_includes_founded_and_headquarters():

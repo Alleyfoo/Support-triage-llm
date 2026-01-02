@@ -9,6 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from app import queue_db
+from app.sanitizer import sanitize_public_text
 
 EXPORT_DIR = Path("data/exports")
 
@@ -98,13 +99,15 @@ with st.sidebar:
         st.write("Queue is empty. Use the API or CLI to enqueue cases.")
     else:
         counts = cases_df["status"].value_counts() if "status" in cases_df else {}
-        for status, count in counts.items():
-            st.write(f"{status}: {count}")
-        statuses = sorted(counts.index.tolist())
+        if counts is not None:
+            for status, count in counts.items():
+                st.write(f"{status}: {count}")
+        statuses = sorted(counts.index.tolist()) if counts is not None else []
         status_filter = st.multiselect("Filter by status", statuses, default=statuses)
         tenant_filter = st.text_input("Filter by tenant/end user")
         email_only = st.checkbox("Email delivery cases only", value=False)
-        st.write("Run worker: `python tools/triage_worker.py --watch`")
+        st.caption("Run worker: `python tools/triage_worker.py --watch`")
+        st.caption("Health: `python tools/status.py`")
 
 st.subheader("Cases")
 if cases_df.empty:
@@ -146,9 +149,24 @@ with col_a:
 with col_b:
     st.subheader("Draft customer reply")
     default_subject = triage_json.get("draft_customer_reply", {}).get("subject", "") if isinstance(triage_json, dict) else ""
-    default_body = triage_json.get("draft_customer_reply", {}).get("body", "") if isinstance(triage_json, dict) else ""
-    subject = st.text_input("Subject", value=row.get("draft_customer_reply_subject") or default_subject)
-    body = st.text_area("Body", value=row.get("draft_customer_reply_body") or default_body, height=200)
+default_body = triage_json.get("draft_customer_reply", {}).get("body", "") if isinstance(triage_json, dict) else ""
+subject = st.text_input("Subject", value=row.get("draft_customer_reply_subject") or default_subject)
+body = st.text_area("Body", value=row.get("draft_customer_reply_body") or default_body, height=200)
+
+triage_subject = row.get("triage_draft_subject") or default_subject
+triage_body = row.get("triage_draft_body") or default_body
+raw_evidence = row.get("evidence_json")
+if isinstance(raw_evidence, str):
+    evidence_list = _json_load(raw_evidence) or []
+elif isinstance(raw_evidence, list):
+    evidence_list = raw_evidence
+else:
+    evidence_list = []
+st.subheader("Review deltas")
+delta_col1, delta_col2, delta_col3 = st.columns(3)
+delta_col1.metric("Subject change", f"{_edit_ratio(triage_subject, subject) * 100:.1f}%")
+delta_col2.metric("Body change", f"{_edit_ratio(triage_body, body) * 100:.1f}%")
+delta_col3.metric("Evidence count", len(evidence_list))
 
 missing_questions = row.get("missing_info_questions") or []
 if isinstance(missing_questions, str):
@@ -243,15 +261,26 @@ with st.expander("Raw record"):
 st.subheader("Evidence and Report")
 tab1, tab2 = st.tabs(["Evidence", "Final report"])
 with tab1:
-    evidence = row.get("evidence_json") or []
-    if isinstance(evidence, str):
-        evidence = _json_load(evidence) or []
+    evidence = evidence_list
     if not evidence:
         st.write("No evidence bundles recorded.")
     else:
         for bundle in evidence:
-            st.markdown(f"**Source:** {bundle.get('source','unknown')} tenant={bundle.get('tenant')}")
-            st.code(_pretty_json(bundle), language="json")
+            tool = (bundle.get("metadata") or {}).get("tool_name") or bundle.get("source", "unknown")
+            if tool == "log_evidence":
+                st.markdown("**Log check**")
+                decision = bundle.get("decision") or "not_observed"
+                summary = bundle.get("summary_external") or ""
+                counts = bundle.get("summary_counts") or {}
+                incident = bundle.get("incident_window") or {}
+                st.write(f"{decision}: {sanitize_public_text(summary)}")
+                st.write(f"Incident window: {incident.get('start','?')} → {incident.get('end','?')}")
+                st.write(f"Counts: errors={counts.get('errors',0)}, warnings={counts.get('warnings',0)}, total={counts.get('total_events',0)}")
+                with st.expander("Sample events (internal)"):
+                    st.code(_pretty_json(bundle.get("events") or []), language="json")
+            else:
+                st.markdown(f"**Source:** {bundle.get('source','unknown')} tenant={bundle.get('tenant')}")
+                st.code(_pretty_json(bundle), language="json")
 with tab2:
     report = row.get("final_report_json") or {}
     if isinstance(report, str):

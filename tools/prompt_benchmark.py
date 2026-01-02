@@ -15,8 +15,12 @@ from typing import List
 import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from app.pipeline import run_pipeline
 from app.config import MODEL_BACKEND, OLLAMA_MODEL, OLLAMA_HOST
+from app.features import require_pipeline_enabled
+
+require_pipeline_enabled()
+
+from app.extensions.pipeline import run_pipeline
 
 
 def expand_prompts(prompt: str, count: int) -> List[str]:

@@ -1,0 +1,12 @@
+{"ts":"2025-05-01T10:30:00Z","tenant":"acme","service":"api","level":"INFO","event_type":"healthcheck","message":"Service healthy"}
+{"ts":"2025-05-01T10:41:55Z","tenant":"acme","service":"api","level":"WARN","event_type":"slow_query","message":"DB latency above threshold","latency_ms":900}
+{"ts":"2025-05-01T10:45:10Z","tenant":"acme","service":"api","level":"ERROR","event_type":"http_5xx","status_code":500,"message":"500 Internal Server Error on /inbox"}
+{"ts":"2025-05-01T10:47:22Z","tenant":"acme","service":"api","level":"ERROR","event_type":"timeout","status_code":504,"message":"Upstream timeout contacting mailstore","request_id":"req-abc-1"}
+{"ts":"2025-05-01T10:49:05Z","tenant":"acme","service":"api","level":"ERROR","event_type":"http_5xx","status_code":502,"message":"Bad gateway from worker cluster","request_id":"req-abc-2"}
+{"ts":"2025-05-01T10:52:40Z","tenant":"acme","service":"api","level":"ERROR","event_type":"service_down","status_code":503,"message":"Service unavailable during deploy","request_id":"req-abc-3"}
+{"ts":"2025-05-01T10:58:00Z","tenant":"acme","service":"api","level":"WARN","event_type":"recovered","message":"Service recovered after incident"}
+{"ts":"2025-05-01T11:05:10Z","tenant":"acme","service":"api","level":"INFO","event_type":"healthcheck","message":"Service healthy"}
+{"ts":"2025-05-01T14:00:00Z","tenant":"acme","service":"worker","level":"ERROR","event_type":"timeout","status_code":504,"message":"Background job timeout"}
+{"ts":"2025-05-02T09:15:00Z","tenant":"beta","service":"api","level":"ERROR","event_type":"http_5xx","status_code":500,"message":"Beta tenant intermittent 500s"}
+{"ts":"2025-05-03T14:10:00Z","tenant":"acme","service":"api","level":"ERROR","event_type":"http_5xx","status_code":500,"message":"500 during deploy window"}
+{"ts":"2025-05-03T14:12:00Z","tenant":"acme","service":"api","level":"ERROR","event_type":"timeout","status_code":504,"message":"Timeout during deploy window"}

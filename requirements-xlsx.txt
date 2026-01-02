@@ -1,0 +1,2 @@
+# Optional XLSX support (for reading Excel inputs/exports)
+openpyxl

@@ -2,7 +2,11 @@ import json
 from pathlib import Path
 import click
 
-from app.pipeline import run_pipeline
+from app.features import require_pipeline_enabled
+
+require_pipeline_enabled()
+
+from app.extensions.pipeline import run_pipeline
 
 
 @click.command()

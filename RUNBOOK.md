@@ -64,6 +64,21 @@ Milestone E — Learning loop (gated)
 - Add new scenarios before new features.
 - Prefer small PRs: one tool + one scenario + one UI display.
 
+## 14) Golden path (DB-first demo, no IMAP required)
+- Seed queue from scenarios: `python tools/replay_intakes.py --from tests/scenarios --into data/queue.db`
+- Run worker: `python tools/triage_worker.py --watch`
+- Sync drafts for review: `python tools/sync_drafts.py --limit 10`
+
+## 15) Data formats
+- Account records default to JSON (`data/account_records.json`). CSV is supported; XLSX is optional (requires pandas/openpyxl).
+- Knowledge defaults to `data/knowledge.md` (markdown table). Override via env if needed.
+
+## 16) Log evidence (fixture)
+- `log_evidence` reads a local JSONL fixture (`tests/fixtures/fake_logs.jsonl`) to simulate service logs.
+- Fields: ts (ISO), tenant, service, level, event_type, message, optional status_code/request_id/latency_ms.
+- Incident example: tenant=acme, service=api, window ~2025-05-01T10:45–10:58 with multiple ERRORs.
+- Add new scenarios by appending lines; keep sensitive data out. Absence of logs is reported as “did not find entries,” not “no incident.”
+
 ## 13) What "done" means for v1
 Given an inbound message like "Emails are not arriving" with no details:
 - The system returns a structured triage JSON.

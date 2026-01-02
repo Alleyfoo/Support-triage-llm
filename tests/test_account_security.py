@@ -4,6 +4,11 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook
 
+from app.features import pipeline_enabled
+
+if not pipeline_enabled():
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
+
 
 @pytest.fixture()
 def account_records_xlsx(tmp_path: Path) -> Path:

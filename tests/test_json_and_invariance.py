@@ -4,7 +4,14 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.knowledge import load_knowledge
-import app.pipeline as pipeline
+import pytest
+
+from app.features import pipeline_enabled
+
+if not pipeline_enabled():
+    pytest.skip("Pipeline feature disabled (set FEATURE_PIPELINE=1 to enable)", allow_module_level=True)
+
+import app.extensions.pipeline as pipeline
 
 
 def test_knowledge_template_contains_founded_year():

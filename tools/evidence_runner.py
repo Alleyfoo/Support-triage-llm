@@ -6,6 +6,7 @@ from typing import Any, Dict, Tuple
 
 from app import queue_db
 from tools import registry
+from app.sanitizer import sanitize_public_text
 
 
 INTERNAL_HOST_RE = re.compile(r"\b[\w.-]+\.(internal|corp|svc|local)\b", re.IGNORECASE)
@@ -23,15 +24,21 @@ def _redact(text: str) -> str:
 def _summarize_log_evidence(result: Dict[str, Any]) -> str:
     query_type = (result.get("metadata") or {}).get("query_type") or "errors"
     observed = result.get("observed_incident")
+    decision = result.get("decision")
     window = result.get("incident_window") or result.get("time_window") or {}
     start = window.get("start") or ""
     end = window.get("end") or ""
     counts = result.get("summary_counts") or {}
+    decision_phrase = {
+        "corroborated": "observed error patterns",
+        "inconclusive": "saw some anomalies",
+        "not_observed": "did not observe anomalies",
+    }.get(decision, "checked logs")
     if observed:
-        msg = f"Observed {query_type} signals between {start} and {end} (errors={counts.get('errors',0)}, timeouts={counts.get('timeouts',0)}, availability_gaps={counts.get('availability_gaps',0)})"
+        msg = f"{decision_phrase} between {start} and {end} (errors={counts.get('errors',0)}, timeouts={counts.get('timeouts',0)}, availability_gaps={counts.get('availability_gaps',0)})"
     else:
-        msg = f"No {query_type} anomalies observed in the checked window {start}–{end}"
-    return _redact(msg)
+        msg = f"{decision_phrase} in the checked window {start}–{end} (errors={counts.get('errors',0)}, timeouts={counts.get('timeouts',0)})"
+    return sanitize_public_text(_redact(msg))
 
 
 def _summarize_service_status(result: Dict[str, Any]) -> str:
