@@ -1,0 +1,10 @@
+{"ts": "2025-05-01T11:23:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 229}
+{"ts": "2025-05-01T11:33:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 279}
+{"ts": "2025-05-01T11:43:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 268}
+{"ts": "2025-05-01T11:46:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 353}
+{"ts": "2025-05-01T11:50:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 344}
+{"ts": "2025-05-01T11:52:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 165}
+{"ts": "2025-05-01T11:58:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 277}
+{"ts": "2025-05-01T12:03:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 111}
+{"ts": "2025-05-01T12:06:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 312}
+{"ts": "2025-05-01T12:08:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 258}

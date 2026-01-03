@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0047",
+  "text": "We suspect issues with the api service yesterday around 16:00 UTC. Webhooks are failing and retries are not clearing. We could not find logs yet.",
+  "anchor_time": "2025-05-04T09:00:00Z",
+  "service": "api",
+  "tenant": "umbrella",
+  "case_type": "integration",
+  "severity": "high",
+  "time_expression": "yesterday",
+  "customer_time_window": {
+    "start": "2025-05-03T16:00:00Z",
+    "end": "2025-05-03T18:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-03T16:00:00Z",
+    "end": "2025-05-03T18:00:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0047.jsonl",
+  "log_pattern": "no_logs",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "high",
+    "log_pattern": "clean"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-03T16:00:00Z",
+      "end": "2025-05-03T18:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-03T16:00:00Z",
+      "end": "2025-05-03T18:00:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": null,
+    "expects_customer_window": true,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

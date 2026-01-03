@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0087",
+  "text": "We suspect issues with the api service between 09:06 and 09:58 UTC today. Webhooks are failing and retries are not clearing.",
+  "anchor_time": "2025-05-08T12:00:00Z",
+  "service": "api",
+  "tenant": "globex",
+  "case_type": "integration",
+  "severity": "low",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-08T09:06:00Z",
+    "end": "2025-05-08T09:58:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-08T09:06:00Z",
+    "end": "2025-05-08T09:58:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0087.jsonl",
+  "log_pattern": "noisy",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": false,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "noisy"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-08T09:06:00Z",
+      "end": "2025-05-08T09:58:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-08T09:06:00Z",
+      "end": "2025-05-08T09:58:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": null,
+    "expects_customer_window": true,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

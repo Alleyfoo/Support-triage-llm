@@ -1,0 +1,9 @@
+{"ts": "2025-05-01T11:29:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 251}
+{"ts": "2025-05-01T11:39:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 252}
+{"ts": "2025-05-01T11:49:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 363}
+{"ts": "2025-05-01T11:54:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 117}
+{"ts": "2025-05-01T11:59:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 278}
+{"ts": "2025-05-01T12:06:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 252}
+{"ts": "2025-05-01T12:11:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 88}
+{"ts": "2025-05-01T12:16:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 176}
+{"ts": "2025-05-01T12:21:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 380}

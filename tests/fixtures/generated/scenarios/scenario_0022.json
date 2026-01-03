@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0022",
+  "text": "Customers are reporting issues with the worker service last night with no clear timestamp. Webhooks are failing and retries are not clearing.",
+  "anchor_time": "2025-05-02T10:00:00Z",
+  "service": "worker",
+  "tenant": "globex",
+  "case_type": "integration",
+  "severity": "low",
+  "time_expression": "last_night",
+  "customer_time_window": {
+    "start": null,
+    "end": null
+  },
+  "expects_time_window": false,
+  "query_time_window": {
+    "start": "2025-05-01T10:00:00Z",
+    "end": "2025-05-02T10:00:00Z",
+    "source": "anchor_last24h"
+  },
+  "incident_window": {
+    "start": "2025-05-01T11:15:00Z",
+    "end": "2025-05-01T11:43:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0022.jsonl",
+  "log_pattern": "recovery",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": false,
+    "has_timezone_hint": false,
+    "ambiguity_level": "high",
+    "log_pattern": "recovery"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": null,
+      "end": null
+    },
+    "query_time_window": {
+      "start": "2025-05-01T10:00:00Z",
+      "end": "2025-05-02T10:00:00Z",
+      "source": "anchor_last24h"
+    },
+    "incident_window": {
+      "start": "2025-05-01T11:15:00Z",
+      "end": "2025-05-01T11:43:00Z"
+    },
+    "expects_customer_window": false,
+    "expects_incident": true,
+    "expects_high_confidence": false
+  }
+}

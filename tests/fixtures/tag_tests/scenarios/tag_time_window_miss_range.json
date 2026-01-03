@@ -1,0 +1,55 @@
+{
+  "id": "tag_time_window_miss_range",
+  "text": "Synthetic canary: customer reports 09:00-10:00 UTC, errors actually at 18:00 UTC.",
+  "anchor_time": "2025-05-11T13:00:00Z",
+  "service": "worker",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "medium",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-11T09:00:00Z",
+    "end": "2025-05-11T10:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-11T09:00:00Z",
+    "end": "2025-05-11T10:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-11T09:10:00Z",
+    "end": "2025-05-11T09:20:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_time_window_miss_range.jsonl",
+  "log_pattern": "noisy",
+  "notes": "tagged_canary",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "noisy",
+    "expected_issue": "time_window_miss"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-11T09:00:00Z",
+      "end": "2025-05-11T10:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-11T09:00:00Z",
+      "end": "2025-05-11T10:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-11T09:10:00Z",
+      "end": "2025-05-11T09:20:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

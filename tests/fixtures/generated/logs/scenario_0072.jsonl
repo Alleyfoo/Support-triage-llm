@@ -1,0 +1,10 @@
+{"ts": "2025-05-07T06:19:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 124}
+{"ts": "2025-05-07T06:29:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 376}
+{"ts": "2025-05-07T06:39:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 297}
+{"ts": "2025-05-07T06:43:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 110}
+{"ts": "2025-05-07T06:49:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 308}
+{"ts": "2025-05-07T06:51:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 364}
+{"ts": "2025-05-07T06:56:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 179}
+{"ts": "2025-05-07T07:01:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 231}
+{"ts": "2025-05-07T07:06:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 211}
+{"ts": "2025-05-07T07:11:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 211}

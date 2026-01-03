@@ -1,0 +1,10 @@
+{"ts": "2025-05-01T16:15:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 215}
+{"ts": "2025-05-01T16:31:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 244}
+{"ts": "2025-05-01T16:39:00Z", "tenant": "umbrella", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 106}
+{"ts": "2025-05-01T16:53:00Z", "tenant": "umbrella", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 135}
+{"ts": "2025-05-01T17:08:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 246}
+{"ts": "2025-05-01T17:19:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 308}
+{"ts": "2025-05-01T17:31:00Z", "tenant": "umbrella", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 368}
+{"ts": "2025-05-01T17:44:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 313}
+{"ts": "2025-05-01T18:00:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 220}
+{"ts": "2025-05-01T18:13:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 173}

@@ -1,0 +1,54 @@
+{
+  "id": "scenario_fail_0001",
+  "text": "Synthetic failing case: service down at 12:00 UTC today.",
+  "anchor_time": "2025-05-10T15:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "high",
+  "time_expression": "clock_only",
+  "customer_time_window": {
+    "start": "2025-05-10T12:00:00Z",
+    "end": "2025-05-10T14:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-10T12:00:00Z",
+    "end": "2025-05-10T14:00:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": {
+    "start": "2025-05-10T12:05:00Z",
+    "end": "2025-05-10T12:25:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_fail_0001.jsonl",
+  "log_pattern": "no_logs",
+  "notes": "forced failure",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "clean"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-10T12:00:00Z",
+      "end": "2025-05-10T14:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-10T12:00:00Z",
+      "end": "2025-05-10T14:00:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": {
+      "start": "2025-05-10T12:05:00Z",
+      "end": "2025-05-10T12:25:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

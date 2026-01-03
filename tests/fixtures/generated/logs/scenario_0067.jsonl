@@ -1,0 +1,3 @@
+{"ts": "2025-05-06T10:24:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_500", "message": "Intermittent failure", "status_code": 500, "request_id": null, "latency_ms": 161}
+{"ts": "2025-05-06T10:44:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_500", "message": "Intermittent failure", "status_code": 500, "request_id": null, "latency_ms": 173}
+{"ts": "2025-05-06T10:59:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "No further anomalies", "status_code": 200, "request_id": null, "latency_ms": 277}

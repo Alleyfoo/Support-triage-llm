@@ -45,6 +45,8 @@ def _load_fixture(path: Path) -> List[LogEntry]:
     if not path.exists():
         return entries
     for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
         record = json.loads(line)
         entries.append(
             LogEntry(
@@ -171,7 +173,9 @@ def run_log_evidence(params: Dict[str, Any]) -> Dict[str, Any]:
     incident_start = _parse_ts(incident_window_param["start"]) if incident_window_param and incident_window_param.get("start") else start
     incident_end = _parse_ts(incident_window_param["end"]) if incident_window_param and incident_window_param.get("end") else end
 
-    source = FakeLogSource()
+    fixture_param = params.get("fixture_path")
+    fixture_path = Path(fixture_param) if fixture_param else None
+    source = FakeLogSource(fixture_path) if fixture_path else FakeLogSource()
     entries = source.query(tenant=tenant, service=service, start=start, end=end)
     counts = _count_events(entries)
 
@@ -181,9 +185,9 @@ def run_log_evidence(params: Dict[str, Any]) -> Dict[str, Any]:
     signal_entries = [e for e in incident_entries if e.level.upper() != "INFO" or (e.status_code or 0) >= 400]
     incident_window_start_dt = min((e.ts for e in incident_filtered), default=incident_start)
     incident_window_start_dt = incident_window_start_dt if incident_window_start_dt >= incident_start else incident_start
-    end_candidates = signal_entries or incident_filtered or incident_entries
+    end_candidates = incident_filtered if incident_filtered else incident_entries
     incident_window_end_dt = max((e.ts for e in end_candidates), default=incident_end)
-    incident_window_end_dt = incident_window_end_dt if incident_window_end_dt <= incident_end else incident_end
+    incident_window_end_dt = min(incident_window_end_dt, incident_end)
     incident_window = {
         "start": incident_window_start_dt.isoformat().replace("+00:00", "Z"),
         "end": incident_window_end_dt.isoformat().replace("+00:00", "Z"),
@@ -232,6 +236,7 @@ def run_log_evidence(params: Dict[str, Any]) -> Dict[str, Any]:
             "incident_eval_window": incident_window,
             "note": "Logs are sampled; absence of evidence is not proof of absence.",
             "service_inferred_from": service_inferred_from,
+            "fixture_path": str(fixture_path) if fixture_path else None,
         },
         "events": events,
     }

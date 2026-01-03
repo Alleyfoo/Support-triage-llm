@@ -1,0 +1,10 @@
+{"ts": "2025-05-04T10:51:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 225}
+{"ts": "2025-05-04T11:01:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 121}
+{"ts": "2025-05-04T11:11:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 286}
+{"ts": "2025-05-04T11:15:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 200}
+{"ts": "2025-05-04T11:20:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 309}
+{"ts": "2025-05-04T11:23:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 83}
+{"ts": "2025-05-04T11:31:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 337}
+{"ts": "2025-05-04T11:36:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 396}
+{"ts": "2025-05-04T11:41:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 83}
+{"ts": "2025-05-04T11:46:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 193}

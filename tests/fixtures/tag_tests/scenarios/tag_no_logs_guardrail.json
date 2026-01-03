@@ -1,0 +1,55 @@
+{
+  "id": "tag_no_logs_guardrail",
+  "text": "Synthetic canary: customer reports 10:00-12:00 UTC, but logs are empty. Should trigger claim-safety phrasing.",
+  "anchor_time": "2025-05-15T13:00:00Z",
+  "service": "worker",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "high",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-15T10:00:00Z",
+    "end": "2025-05-15T12:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-15T10:00:00Z",
+    "end": "2025-05-15T12:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-15T10:10:00Z",
+    "end": "2025-05-15T10:30:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_no_logs_guardrail.jsonl",
+  "log_pattern": "clean",
+  "notes": "tagged_guardrail",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "clean",
+    "expected_issue": "claim_safety"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-15T10:00:00Z",
+      "end": "2025-05-15T12:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-15T10:00:00Z",
+      "end": "2025-05-15T12:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-15T10:10:00Z",
+      "end": "2025-05-15T10:30:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

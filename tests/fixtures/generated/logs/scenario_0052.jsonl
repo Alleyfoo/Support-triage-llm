@@ -1,0 +1,11 @@
+{"ts": "2025-05-04T12:24:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 349}
+{"ts": "2025-05-04T12:34:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 384}
+{"ts": "2025-05-04T12:44:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 200}
+{"ts": "2025-05-04T12:46:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 376}
+{"ts": "2025-05-04T12:49:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 197}
+{"ts": "2025-05-04T12:52:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 295}
+{"ts": "2025-05-04T12:54:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 326}
+{"ts": "2025-05-04T12:56:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 370}
+{"ts": "2025-05-04T13:02:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 355}
+{"ts": "2025-05-04T13:07:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 247}
+{"ts": "2025-05-04T13:10:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 211}

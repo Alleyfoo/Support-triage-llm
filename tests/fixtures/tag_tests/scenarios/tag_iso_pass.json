@@ -1,0 +1,55 @@
+{
+  "id": "tag_iso_pass",
+  "text": "Synthetic control: ISO timestamp 2025-05-13T10:45 UTC with matching logs.",
+  "anchor_time": "2025-05-13T12:00:00Z",
+  "service": "api",
+  "tenant": "umbrella",
+  "case_type": "incident",
+  "severity": "medium",
+  "time_expression": "iso",
+  "customer_time_window": {
+    "start": "2025-05-13T10:45:00Z",
+    "end": "2025-05-13T12:45:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-13T10:45:00Z",
+    "end": "2025-05-13T12:45:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-13T11:00:00Z",
+    "end": "2025-05-13T11:20:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_iso_pass.jsonl",
+  "log_pattern": "recovery",
+  "notes": "tagged_control",
+  "tags": {
+    "time_expr": "explicit_iso",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "recovery",
+    "expected_issue": "none"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-13T10:45:00Z",
+      "end": "2025-05-13T12:45:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-13T10:45:00Z",
+      "end": "2025-05-13T12:45:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-13T11:00:00Z",
+      "end": "2025-05-13T11:20:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

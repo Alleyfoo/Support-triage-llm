@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0083",
+  "text": "We suspect issues with the worker service between 09:03 and 09:57 UTC today. API calls are timing out. We could not find logs yet.",
+  "anchor_time": "2025-05-07T11:00:00Z",
+  "service": "worker",
+  "tenant": "acme",
+  "case_type": "unknown",
+  "severity": "high",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-07T09:03:00Z",
+    "end": "2025-05-07T09:57:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-07T09:03:00Z",
+    "end": "2025-05-07T09:57:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0083.jsonl",
+  "log_pattern": "no_logs",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": false,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "clean"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-07T09:03:00Z",
+      "end": "2025-05-07T09:57:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-07T09:03:00Z",
+      "end": "2025-05-07T09:57:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": null,
+    "expects_customer_window": true,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

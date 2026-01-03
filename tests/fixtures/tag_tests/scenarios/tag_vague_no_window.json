@@ -1,0 +1,49 @@
+{
+  "id": "tag_vague_no_window",
+  "text": "Synthetic control: issues reported recently with no timestamp; should not assume a window.",
+  "anchor_time": "2025-05-09T12:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "low",
+  "time_expression": "vague",
+  "customer_time_window": {
+    "start": null,
+    "end": null
+  },
+  "expects_time_window": false,
+  "query_time_window": {
+    "start": "2025-05-08T12:00:00Z",
+    "end": "2025-05-09T12:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "tag_vague_no_window.jsonl",
+  "log_pattern": "clean",
+  "notes": "tagged_control",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": false,
+    "has_timezone_hint": false,
+    "ambiguity_level": "high",
+    "log_pattern": "clean",
+    "expected_issue": "none"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": null,
+      "end": null
+    },
+    "query_time_window": {
+      "start": "2025-05-08T12:00:00Z",
+      "end": "2025-05-09T12:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": null,
+    "expects_customer_window": false,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

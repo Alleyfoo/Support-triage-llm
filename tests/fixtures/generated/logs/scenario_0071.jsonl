@@ -1,0 +1,11 @@
+{"ts": "2025-05-05T16:30:00Z", "tenant": "acme", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 291}
+{"ts": "2025-05-05T16:42:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 318}
+{"ts": "2025-05-05T16:54:00Z", "tenant": "acme", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 130}
+{"ts": "2025-05-05T17:04:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 223}
+{"ts": "2025-05-05T17:14:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 112}
+{"ts": "2025-05-05T17:27:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 218}
+{"ts": "2025-05-05T17:40:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 174}
+{"ts": "2025-05-05T17:48:00Z", "tenant": "acme", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 289}
+{"ts": "2025-05-05T18:01:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 188}
+{"ts": "2025-05-05T18:12:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 182}
+{"ts": "2025-05-05T18:25:00Z", "tenant": "acme", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 154}

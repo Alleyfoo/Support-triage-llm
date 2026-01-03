@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0037",
+  "text": "We suspect issues with the api service around 2025-05-04T10:09 UTC. API calls are timing out. Logs are sparse and only show a few errors.",
+  "anchor_time": "2025-05-04T11:00:00Z",
+  "service": "api",
+  "tenant": "contoso",
+  "case_type": "unknown",
+  "severity": "low",
+  "time_expression": "iso",
+  "customer_time_window": {
+    "start": "2025-05-04T10:09:00Z",
+    "end": "2025-05-04T12:09:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-04T10:09:00Z",
+    "end": "2025-05-04T12:09:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0037.jsonl",
+  "log_pattern": "sparse",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "explicit_iso",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "sparse"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-04T10:09:00Z",
+      "end": "2025-05-04T12:09:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-04T10:09:00Z",
+      "end": "2025-05-04T12:09:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": null,
+    "expects_customer_window": true,
+    "expects_incident": false,
+    "expects_high_confidence": true
+  }
+}

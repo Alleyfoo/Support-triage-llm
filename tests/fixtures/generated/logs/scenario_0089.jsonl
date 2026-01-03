@@ -1,0 +1,10 @@
+{"ts": "2025-05-07T15:09:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 260}
+{"ts": "2025-05-07T15:19:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 113}
+{"ts": "2025-05-07T15:29:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 93}
+{"ts": "2025-05-07T15:34:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 265}
+{"ts": "2025-05-07T15:37:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 197}
+{"ts": "2025-05-07T15:42:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 295}
+{"ts": "2025-05-07T15:50:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 184}
+{"ts": "2025-05-07T15:55:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 361}
+{"ts": "2025-05-07T16:00:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 338}
+{"ts": "2025-05-07T16:05:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 365}

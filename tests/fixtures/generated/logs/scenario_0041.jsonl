@@ -1,0 +1,7 @@
+{"ts": "2025-05-04T09:25:00Z", "tenant": "umbrella", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 374}
+{"ts": "2025-05-04T09:37:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 181}
+{"ts": "2025-05-04T09:48:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 312}
+{"ts": "2025-05-04T10:01:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 127}
+{"ts": "2025-05-04T10:16:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 308}
+{"ts": "2025-05-04T10:30:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 279}
+{"ts": "2025-05-04T10:42:00Z", "tenant": "umbrella", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 354}

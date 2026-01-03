@@ -11,9 +11,12 @@ MONTH_DAY_PATTERN = re.compile(
     r"(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(?P<year>\d{4}))?\b",
     re.IGNORECASE,
 )
-CLOCK_PATTERN = re.compile(r"\b(?P<hour>\d{1,2}):(?P<minute>\d{2})(?:\s*(?P<ampm>am|pm))?\s*(?P<tz>utc|z)?", re.IGNORECASE)
+CLOCK_PATTERN = re.compile(
+    r"\b(?P<hour>\d{1,2})(?:(?::(?P<minute>\d{2}))|(?:\s*(?P<ampm>am|pm))|(?:\s*(?P<tz>utc|z|pst|pdt|pt)))",
+    re.IGNORECASE,
+)
 RANGE_PATTERN = re.compile(
-    r"\b(?:between\s+)?(?P<start>\d{1,2}:\d{2})\s*(?:-|to|–|—)\s*(?P<end>\d{1,2}:\d{2})\s*(?P<tz>utc|z)?",
+    r"\b(?:between\s+)?(?P<start>\d{1,2}:\d{2})\s*(?:-|to|and)\s*(?P<end>\d{1,2}:\d{2})\s*(?P<tz>utc|z|pst|pdt|pt)?",
     re.IGNORECASE,
 )
 
@@ -34,12 +37,36 @@ MONTH_LOOKUP = {
 }
 
 
+def _tz_from_text(lower: str) -> timezone:
+    if "pdt" in lower or " pt " in lower or " pacific" in lower:
+        return timezone(timedelta(hours=-7))
+    if "pst" in lower:
+        return timezone(timedelta(hours=-8))
+    if "utc" in lower or "z" in lower:
+        return timezone.utc
+    return timezone.utc
+
+
+def _prevent_rollover(dt: Optional[datetime]) -> Optional[datetime]:
+    """If a negative offset pushes the UTC day forward, pull it back to keep the local day."""
+    if not dt or not dt.tzinfo:
+        return dt
+    offset = dt.utcoffset() or timedelta(0)
+    if offset.total_seconds() >= 0:
+        return dt
+    utc_dt = dt.astimezone(timezone.utc)
+    if utc_dt.date() > dt.date():
+        return utc_dt - timedelta(days=1)
+    return dt
+
+
 def _combine_date_time(base: datetime, clock_match: Optional[re.Match[str]]) -> datetime:
     """Attach a clock time (and am/pm) to a date; defaults to same date."""
     if not clock_match:
         return base
     hour = int(clock_match.group("hour"))
-    minute = int(clock_match.group("minute"))
+    minute_str = clock_match.group("minute")
+    minute = int(minute_str) if minute_str is not None else 0
     ampm = clock_match.group("ampm")
     if ampm:
         ampm = ampm.lower()
@@ -57,6 +84,7 @@ def _iso(dt: datetime) -> str:
 def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, object]:
     lower = text.lower()
     now = now or datetime.now(timezone.utc)
+    tz = _tz_from_text(f" {lower} ")  # wrap with spaces so "pt" matches phrase " pt "
     start_dt: Optional[datetime] = None
     end_dt: Optional[datetime] = None
     confidence = 0.1
@@ -64,6 +92,10 @@ def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, ob
     iso = ISO_PATTERN.search(text)
     clock = CLOCK_PATTERN.search(text)
     clock_range = RANGE_PATTERN.search(text)
+    if iso:
+        clock = None
+    if clock_range:
+        clock = None
     reason = "parsed_from_text"
 
     if iso:
@@ -80,8 +112,8 @@ def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, ob
         try:
             sh, sm = clock_range.group("start").split(":")
             eh, em = clock_range.group("end").split(":")
-            start_dt = datetime(now.year, now.month, now.day, int(sh), int(sm), tzinfo=timezone.utc)
-            end_dt = datetime(now.year, now.month, now.day, int(eh), int(em), tzinfo=timezone.utc)
+            start_dt = datetime(now.year, now.month, now.day, int(sh), int(sm), tzinfo=tz)
+            end_dt = datetime(now.year, now.month, now.day, int(eh), int(em), tzinfo=tz)
             confidence = 0.7
         except Exception:
             pass
@@ -92,21 +124,21 @@ def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, ob
             year = int(date_only.group("year"))
             month = int(date_only.group("month"))
             day = int(date_only.group("day"))
-            start_dt = datetime(year, month, day, tzinfo=timezone.utc)
+            start_dt = datetime(year, month, day, tzinfo=tz)
             confidence = 0.6
         elif month_day:
             month_name = month_day.group("month").lower()
             month = MONTH_LOOKUP.get(month_name[:3], now.month)
             day = int(month_day.group("day"))
             year = int(month_day.group("year") or now.year)
-            start_dt = datetime(year, month, day, tzinfo=timezone.utc)
+            start_dt = datetime(year, month, day, tzinfo=tz)
             confidence = 0.55
 
         if "yesterday" in lower or "last night" in lower:
             confidence = 0.35
             if clock and not start_dt:
                 try:
-                    base = datetime(now.year, now.month, now.day, tzinfo=timezone.utc) - timedelta(days=1)
+                    base = datetime(now.year, now.month, now.day, tzinfo=tz) - timedelta(days=1)
                     start_dt = _combine_date_time(base, clock)
                 except Exception:
                     start_dt = None
@@ -114,7 +146,7 @@ def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, ob
             confidence = 0.35
             if clock and not start_dt:
                 try:
-                    base = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+                    base = datetime(now.year, now.month, now.day, tzinfo=tz)
                     start_dt = _combine_date_time(base, clock)
                 except Exception:
                     start_dt = None
@@ -124,10 +156,13 @@ def parse_time_window(text: str, now: Optional[datetime] = None) -> Dict[str, ob
         end_dt = start_dt + timedelta(hours=2)
     elif clock and not start_dt:
         try:
-            start_dt = _combine_date_time(datetime(now.year, now.month, now.day, tzinfo=timezone.utc), clock)
+            start_dt = _combine_date_time(datetime(now.year, now.month, now.day, tzinfo=tz), clock)
             end_dt = start_dt + timedelta(hours=2)
         except Exception:
             start_dt = None
+
+    start_dt = _prevent_rollover(start_dt)
+    end_dt = _prevent_rollover(end_dt)
 
     if start_dt and not end_dt:
         end_dt = start_dt + timedelta(hours=36)

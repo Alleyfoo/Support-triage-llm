@@ -1,0 +1,11 @@
+{"ts": "2025-05-06T10:51:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 330}
+{"ts": "2025-05-06T10:59:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 279}
+{"ts": "2025-05-06T11:15:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 128}
+{"ts": "2025-05-06T11:27:00Z", "tenant": "contoso", "service": "worker", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 223}
+{"ts": "2025-05-06T11:37:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 209}
+{"ts": "2025-05-06T11:50:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 220}
+{"ts": "2025-05-06T12:00:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 212}
+{"ts": "2025-05-06T12:11:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 317}
+{"ts": "2025-05-06T12:20:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 184}
+{"ts": "2025-05-06T12:35:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 94}
+{"ts": "2025-05-06T12:47:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 250}

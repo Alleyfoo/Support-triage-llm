@@ -1,0 +1,55 @@
+{
+  "id": "tag_range_pass",
+  "text": "Synthetic control: between 09:00 and 10:30 UTC, errors observed.",
+  "anchor_time": "2025-05-14T12:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "medium",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-14T09:00:00Z",
+    "end": "2025-05-14T10:30:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-14T09:00:00Z",
+    "end": "2025-05-14T10:30:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-14T09:10:00Z",
+    "end": "2025-05-14T09:40:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_range_pass.jsonl",
+  "log_pattern": "sparse",
+  "notes": "tagged_control",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "sparse",
+    "expected_issue": "none"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-14T09:00:00Z",
+      "end": "2025-05-14T10:30:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-14T09:00:00Z",
+      "end": "2025-05-14T10:30:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-14T09:10:00Z",
+      "end": "2025-05-14T09:40:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

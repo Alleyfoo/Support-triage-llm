@@ -1,0 +1,8 @@
+{"ts": "2025-05-06T11:49:00Z", "tenant": "umbrella", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 117}
+{"ts": "2025-05-06T11:59:00Z", "tenant": "umbrella", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 172}
+{"ts": "2025-05-06T12:09:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 238}
+{"ts": "2025-05-06T12:11:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 225}
+{"ts": "2025-05-06T12:16:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 200}
+{"ts": "2025-05-06T12:22:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 381}
+{"ts": "2025-05-06T12:26:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 345}
+{"ts": "2025-05-06T12:28:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 159}

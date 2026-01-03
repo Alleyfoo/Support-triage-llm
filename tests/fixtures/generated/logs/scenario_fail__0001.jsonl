@@ -1,0 +1,18 @@
+{
+  "id": "scenario_fail_0001",
+  "text": "Service down at 12:00 UTC today.",
+  "anchor_time": "2025-05-10T15:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "high",
+  "time_expression": "clock_only",
+  "customer_time_window": {"start": "2025-05-10T12:00:00Z", "end": "2025-05-10T14:00:00Z"},
+  "query_time_window": {"start": "2025-05-10T12:00:00Z", "end": "2025-05-10T14:00:00Z"},
+  "incident_window": {"start": "2025-05-10T12:05:00Z", "end": "2025-05-10T12:25:00Z"},
+  "observed_incident": true,
+  "log_path": "scenario_fail_0001.jsonl",
+  "log_pattern": "no_logs",
+  "tags": {"time_expr": "time_only", "log_pattern": "no_logs"},
+  "truth": {"expects_customer_window": true, "expects_incident": true}
+}

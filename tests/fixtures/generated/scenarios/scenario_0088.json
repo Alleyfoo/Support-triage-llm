@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0088",
+  "text": "We suspect issues with the api service last night with no clear timestamp. Webhooks are failing and retries are not clearing. We could not find logs yet.",
+  "anchor_time": "2025-05-08T15:00:00Z",
+  "service": "api",
+  "tenant": "contoso",
+  "case_type": "integration",
+  "severity": "medium",
+  "time_expression": "last_night",
+  "customer_time_window": {
+    "start": null,
+    "end": null
+  },
+  "expects_time_window": false,
+  "query_time_window": {
+    "start": "2025-05-07T15:00:00Z",
+    "end": "2025-05-08T15:00:00Z",
+    "source": "anchor_last24h"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0088.jsonl",
+  "log_pattern": "no_logs",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": false,
+    "has_timezone_hint": false,
+    "ambiguity_level": "high",
+    "log_pattern": "clean"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": null,
+      "end": null
+    },
+    "query_time_window": {
+      "start": "2025-05-07T15:00:00Z",
+      "end": "2025-05-08T15:00:00Z",
+      "source": "anchor_last24h"
+    },
+    "incident_window": null,
+    "expects_customer_window": false,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

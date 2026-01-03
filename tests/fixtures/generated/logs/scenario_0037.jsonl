@@ -1,0 +1,3 @@
+{"ts": "2025-05-04T10:24:00Z", "tenant": "contoso", "service": "api", "level": "ERROR", "event_type": "http_500", "message": "Intermittent failure", "status_code": 500, "request_id": null, "latency_ms": 205}
+{"ts": "2025-05-04T10:44:00Z", "tenant": "contoso", "service": "api", "level": "ERROR", "event_type": "http_500", "message": "Intermittent failure", "status_code": 500, "request_id": null, "latency_ms": 268}
+{"ts": "2025-05-04T10:59:00Z", "tenant": "contoso", "service": "api", "level": "INFO", "event_type": "health_check", "message": "No further anomalies", "status_code": 200, "request_id": null, "latency_ms": 251}

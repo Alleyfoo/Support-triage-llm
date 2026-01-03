@@ -1,0 +1,55 @@
+{
+  "id": "tag_timezone_miss",
+  "text": "Synthetic canary: customers reported 5pm PT (UTC-7) on May 03, but logs only show activity at 05:00 UTC.",
+  "anchor_time": "2025-05-03T12:00:00Z",
+  "service": "api",
+  "tenant": "umbrella",
+  "case_type": "incident",
+  "severity": "medium",
+  "time_expression": "timezone_pt",
+  "customer_time_window": {
+    "start": "2025-05-04T00:00:00Z",
+    "end": "2025-05-04T02:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-04T00:00:00Z",
+    "end": "2025-05-04T02:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-04T00:15:00Z",
+    "end": "2025-05-04T00:35:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_timezone_miss.jsonl",
+  "log_pattern": "burst",
+  "notes": "tagged_canary",
+  "tags": {
+    "time_expr": "timezone",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "burst",
+    "expected_issue": "timezone_miss"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-04T00:00:00Z",
+      "end": "2025-05-04T02:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-04T00:00:00Z",
+      "end": "2025-05-04T02:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-04T00:15:00Z",
+      "end": "2025-05-04T00:35:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

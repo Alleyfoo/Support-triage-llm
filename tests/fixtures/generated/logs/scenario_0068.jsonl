@@ -1,0 +1,10 @@
+{"ts": "2025-05-06T07:05:00Z", "tenant": "umbrella", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 384}
+{"ts": "2025-05-06T07:13:00Z", "tenant": "umbrella", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 345}
+{"ts": "2025-05-06T07:29:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 361}
+{"ts": "2025-05-06T07:45:00Z", "tenant": "umbrella", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 273}
+{"ts": "2025-05-06T07:57:00Z", "tenant": "umbrella", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 155}
+{"ts": "2025-05-06T08:11:00Z", "tenant": "umbrella", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 109}
+{"ts": "2025-05-06T08:22:00Z", "tenant": "umbrella", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 233}
+{"ts": "2025-05-06T08:34:00Z", "tenant": "umbrella", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 360}
+{"ts": "2025-05-06T08:49:00Z", "tenant": "umbrella", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 97}
+{"ts": "2025-05-06T08:57:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 105}

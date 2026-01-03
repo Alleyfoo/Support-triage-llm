@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0048",
+  "text": "Customers are reporting issues with the api service between 09:21 and 10:12 UTC today. Webhooks are failing and retries are not clearing.",
+  "anchor_time": "2025-05-05T14:00:00Z",
+  "service": "api",
+  "tenant": "globex",
+  "case_type": "integration",
+  "severity": "medium",
+  "time_expression": "range",
+  "customer_time_window": {
+    "start": "2025-05-05T09:21:00Z",
+    "end": "2025-05-05T10:12:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-05T09:21:00Z",
+    "end": "2025-05-05T10:12:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": {
+    "start": "2025-05-05T09:26:00Z",
+    "end": "2025-05-05T09:53:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0048.jsonl",
+  "log_pattern": "recovery",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": false,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "recovery"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-05T09:21:00Z",
+      "end": "2025-05-05T10:12:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-05T09:21:00Z",
+      "end": "2025-05-05T10:12:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": {
+      "start": "2025-05-05T09:26:00Z",
+      "end": "2025-05-05T09:53:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": false
+  }
+}

@@ -1,0 +1,3 @@
+{"ts": "2025-05-04T05:00:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_500", "message": "Off-by-timezone error", "status_code": 500}
+{"ts": "2025-05-04T05:10:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_500", "message": "Off-by-timezone error", "status_code": 500}
+{"ts": "2025-05-04T05:20:00Z", "tenant": "umbrella", "service": "api", "level": "ERROR", "event_type": "http_500", "message": "Off-by-timezone error", "status_code": 500}

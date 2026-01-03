@@ -1,0 +1,12 @@
+{"ts": "2025-05-07T00:03:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 153}
+{"ts": "2025-05-07T00:13:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 358}
+{"ts": "2025-05-07T00:23:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 283}
+{"ts": "2025-05-07T00:28:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 114}
+{"ts": "2025-05-07T00:33:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 90}
+{"ts": "2025-05-07T00:38:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 110}
+{"ts": "2025-05-07T00:41:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 143}
+{"ts": "2025-05-07T00:46:00Z", "tenant": "globex", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 109}
+{"ts": "2025-05-07T00:54:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 215}
+{"ts": "2025-05-07T00:59:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 114}
+{"ts": "2025-05-07T01:04:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 202}
+{"ts": "2025-05-07T01:09:00Z", "tenant": "globex", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 338}

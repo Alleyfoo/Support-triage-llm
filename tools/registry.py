@@ -246,6 +246,7 @@ _LOG_EVIDENCE_PARAMS_SCHEMA: Dict[str, Any] = {
         },
         "tenant": {"type": ["string", "null"]},
         "reason": {"type": ["string", "null"]},
+        "fixture_path": {"type": ["string", "null"]},
     },
     "required": ["time_window", "query_type"],
 }

@@ -1,0 +1,10 @@
+{"ts": "2025-05-03T08:47:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 400}
+{"ts": "2025-05-03T08:57:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 328}
+{"ts": "2025-05-03T09:07:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 268}
+{"ts": "2025-05-03T09:13:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 379}
+{"ts": "2025-05-03T09:17:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 161}
+{"ts": "2025-05-03T09:22:00Z", "tenant": "umbrella", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 334}
+{"ts": "2025-05-03T09:32:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 113}
+{"ts": "2025-05-03T09:37:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 148}
+{"ts": "2025-05-03T09:42:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 153}
+{"ts": "2025-05-03T09:47:00Z", "tenant": "umbrella", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 302}

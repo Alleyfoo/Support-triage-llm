@@ -1,0 +1,8 @@
+{"ts": "2025-05-02T10:30:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 206}
+{"ts": "2025-05-02T10:30:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 303}
+{"ts": "2025-05-02T10:40:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 229}
+{"ts": "2025-05-02T10:43:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 235}
+{"ts": "2025-05-02T10:45:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 224}
+{"ts": "2025-05-02T10:49:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 188}
+{"ts": "2025-05-02T10:55:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 93}
+{"ts": "2025-05-02T10:59:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 158}

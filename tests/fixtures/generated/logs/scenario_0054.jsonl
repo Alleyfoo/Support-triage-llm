@@ -1,0 +1,4 @@
+{"ts": "2025-05-05T09:15:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 210}
+{"ts": "2025-05-05T09:24:00Z", "tenant": "globex", "service": "worker", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 297}
+{"ts": "2025-05-05T09:39:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 351}
+{"ts": "2025-05-05T09:55:00Z", "tenant": "globex", "service": "worker", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 240}

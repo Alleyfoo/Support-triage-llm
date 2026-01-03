@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0077",
+  "text": "We suspect issues with the api service around 5pm PT (UTC-7) on May 08. Webhooks are failing and retries are not clearing. We could not find logs yet.",
+  "anchor_time": "2025-05-07T11:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "integration",
+  "severity": "medium",
+  "time_expression": "timezone_pt",
+  "customer_time_window": {
+    "start": "2025-05-08T00:00:00Z",
+    "end": "2025-05-08T01:30:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-08T00:00:00Z",
+    "end": "2025-05-08T01:30:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0077.jsonl",
+  "log_pattern": "no_logs",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "timezone",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "clean"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-08T00:00:00Z",
+      "end": "2025-05-08T01:30:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-08T00:00:00Z",
+      "end": "2025-05-08T01:30:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": null,
+    "expects_customer_window": true,
+    "expects_incident": false,
+    "expects_high_confidence": true
+  }
+}

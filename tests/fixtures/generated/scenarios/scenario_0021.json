@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0021",
+  "text": "Customers are reporting issues with the worker service around 2025-05-02T10:30 UTC. API calls are timing out.",
+  "anchor_time": "2025-05-02T10:00:00Z",
+  "service": "worker",
+  "tenant": "acme",
+  "case_type": "unknown",
+  "severity": "high",
+  "time_expression": "iso",
+  "customer_time_window": {
+    "start": "2025-05-02T10:30:00Z",
+    "end": "2025-05-02T12:30:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-02T10:30:00Z",
+    "end": "2025-05-02T12:30:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": {
+    "start": "2025-05-02T10:40:00Z",
+    "end": "2025-05-02T10:59:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0021.jsonl",
+  "log_pattern": "burst",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "explicit_iso",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "burst"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-02T10:30:00Z",
+      "end": "2025-05-02T12:30:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-02T10:30:00Z",
+      "end": "2025-05-02T12:30:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": {
+      "start": "2025-05-02T10:40:00Z",
+      "end": "2025-05-02T10:59:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

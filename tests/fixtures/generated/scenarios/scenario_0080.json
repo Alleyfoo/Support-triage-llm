@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0080",
+  "text": "Customers are reporting issues with the worker service last night with no clear timestamp. API calls are timing out.",
+  "anchor_time": "2025-05-07T11:00:00Z",
+  "service": "worker",
+  "tenant": "umbrella",
+  "case_type": "incident",
+  "severity": "low",
+  "time_expression": "last_night",
+  "customer_time_window": {
+    "start": null,
+    "end": null
+  },
+  "expects_time_window": false,
+  "query_time_window": {
+    "start": "2025-05-06T11:00:00Z",
+    "end": "2025-05-07T11:00:00Z",
+    "source": "anchor_last24h"
+  },
+  "incident_window": {
+    "start": "2025-05-06T11:15:00Z",
+    "end": "2025-05-07T10:58:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0080.jsonl",
+  "log_pattern": "noisy",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": false,
+    "has_timezone_hint": false,
+    "ambiguity_level": "high",
+    "log_pattern": "noisy"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": null,
+      "end": null
+    },
+    "query_time_window": {
+      "start": "2025-05-06T11:00:00Z",
+      "end": "2025-05-07T11:00:00Z",
+      "source": "anchor_last24h"
+    },
+    "incident_window": {
+      "start": "2025-05-06T11:15:00Z",
+      "end": "2025-05-07T10:58:00Z"
+    },
+    "expects_customer_window": false,
+    "expects_incident": true,
+    "expects_high_confidence": false
+  }
+}

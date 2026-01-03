@@ -1,0 +1,9 @@
+{"ts": "2025-05-10T00:00:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 108}
+{"ts": "2025-05-10T00:00:00Z", "tenant": "contoso", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 169}
+{"ts": "2025-05-10T00:10:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 82}
+{"ts": "2025-05-10T00:14:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 130}
+{"ts": "2025-05-10T00:20:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 275}
+{"ts": "2025-05-10T00:22:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 362}
+{"ts": "2025-05-10T00:27:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 191}
+{"ts": "2025-05-10T00:33:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 193}
+{"ts": "2025-05-10T00:36:00Z", "tenant": "contoso", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 386}

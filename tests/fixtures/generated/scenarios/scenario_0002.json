@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0002",
+  "text": "Customers are reporting issues with the worker service at 07:20 UTC. API calls are timing out.",
+  "anchor_time": "2025-05-01T13:00:00Z",
+  "service": "worker",
+  "tenant": "globex",
+  "case_type": "unknown",
+  "severity": "medium",
+  "time_expression": "clock_only",
+  "customer_time_window": {
+    "start": "2025-05-01T07:20:00Z",
+    "end": "2025-05-01T09:20:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-01T07:20:00Z",
+    "end": "2025-05-01T09:20:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": {
+    "start": "2025-05-01T07:40:00Z",
+    "end": "2025-05-01T07:54:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0002.jsonl",
+  "log_pattern": "burst",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "time_only",
+    "has_explicit_date": false,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "medium",
+    "log_pattern": "burst"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-01T07:20:00Z",
+      "end": "2025-05-01T09:20:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-01T07:20:00Z",
+      "end": "2025-05-01T09:20:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": {
+      "start": "2025-05-01T07:40:00Z",
+      "end": "2025-05-01T07:54:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": false
+  }
+}

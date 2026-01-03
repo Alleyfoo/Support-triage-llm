@@ -1,0 +1,54 @@
+{
+  "id": "scenario_0056",
+  "text": "Customers are reporting issues with the worker service around 5pm PT (UTC-7) on May 06. Webhooks are failing and retries are not clearing.",
+  "anchor_time": "2025-05-05T15:00:00Z",
+  "service": "worker",
+  "tenant": "globex",
+  "case_type": "integration",
+  "severity": "high",
+  "time_expression": "timezone_pt",
+  "customer_time_window": {
+    "start": "2025-05-06T00:00:00Z",
+    "end": "2025-05-06T01:30:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-06T00:00:00Z",
+    "end": "2025-05-06T01:30:00Z",
+    "source": "customer_hint"
+  },
+  "incident_window": {
+    "start": "2025-05-06T00:28:00Z",
+    "end": "2025-05-06T00:50:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "scenario_0056.jsonl",
+  "log_pattern": "recovery",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "timezone",
+    "has_explicit_date": true,
+    "has_time_of_day": true,
+    "has_timezone_hint": true,
+    "ambiguity_level": "low",
+    "log_pattern": "recovery"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-06T00:00:00Z",
+      "end": "2025-05-06T01:30:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-06T00:00:00Z",
+      "end": "2025-05-06T01:30:00Z",
+      "source": "customer_hint"
+    },
+    "incident_window": {
+      "start": "2025-05-06T00:28:00Z",
+      "end": "2025-05-06T00:50:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

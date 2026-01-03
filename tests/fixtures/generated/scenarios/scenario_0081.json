@@ -1,0 +1,48 @@
+{
+  "id": "scenario_0081",
+  "text": "We suspect issues with the api service over the past few hours with no timestamp. API calls are timing out. Logs are sparse and only show a few errors.",
+  "anchor_time": "2025-05-07T10:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "low",
+  "time_expression": "vague",
+  "customer_time_window": {
+    "start": null,
+    "end": null
+  },
+  "expects_time_window": false,
+  "query_time_window": {
+    "start": "2025-05-06T10:00:00Z",
+    "end": "2025-05-07T10:00:00Z",
+    "source": "anchor_last24h"
+  },
+  "incident_window": null,
+  "observed_incident": false,
+  "log_path": "scenario_0081.jsonl",
+  "log_pattern": "sparse",
+  "notes": "synthetic",
+  "tags": {
+    "time_expr": "relative",
+    "has_explicit_date": false,
+    "has_time_of_day": false,
+    "has_timezone_hint": false,
+    "ambiguity_level": "high",
+    "log_pattern": "sparse"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": null,
+      "end": null
+    },
+    "query_time_window": {
+      "start": "2025-05-06T10:00:00Z",
+      "end": "2025-05-07T10:00:00Z",
+      "source": "anchor_last24h"
+    },
+    "incident_window": null,
+    "expects_customer_window": false,
+    "expects_incident": false,
+    "expects_high_confidence": false
+  }
+}

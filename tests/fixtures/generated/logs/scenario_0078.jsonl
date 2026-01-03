@@ -1,0 +1,10 @@
+{"ts": "2025-05-07T10:39:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 352}
+{"ts": "2025-05-07T10:49:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 229}
+{"ts": "2025-05-07T11:05:00Z", "tenant": "acme", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 395}
+{"ts": "2025-05-07T11:20:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 368}
+{"ts": "2025-05-07T11:32:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 335}
+{"ts": "2025-05-07T11:46:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "activity", "message": "Mixed traffic sample", "status_code": 200, "request_id": null, "latency_ms": 339}
+{"ts": "2025-05-07T12:01:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 225}
+{"ts": "2025-05-07T12:12:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 307}
+{"ts": "2025-05-07T12:21:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "burst_5xx", "message": "Mixed traffic sample", "status_code": 500, "request_id": null, "latency_ms": 86}
+{"ts": "2025-05-07T12:36:00Z", "tenant": "acme", "service": "api", "level": "WARN", "event_type": "slowdown", "message": "Mixed traffic sample", "status_code": 429, "request_id": null, "latency_ms": 249}

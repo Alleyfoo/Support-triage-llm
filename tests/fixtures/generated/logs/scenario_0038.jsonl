@@ -1,0 +1,12 @@
+{"ts": "2025-05-03T13:01:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 135}
+{"ts": "2025-05-03T13:11:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 131}
+{"ts": "2025-05-03T13:21:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 322}
+{"ts": "2025-05-03T13:26:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 180}
+{"ts": "2025-05-03T13:32:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 351}
+{"ts": "2025-05-03T13:34:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 361}
+{"ts": "2025-05-03T13:37:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 257}
+{"ts": "2025-05-03T13:40:00Z", "tenant": "acme", "service": "worker", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 146}
+{"ts": "2025-05-03T13:49:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 163}
+{"ts": "2025-05-03T13:54:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 398}
+{"ts": "2025-05-03T13:59:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 376}
+{"ts": "2025-05-03T14:04:00Z", "tenant": "acme", "service": "worker", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 234}

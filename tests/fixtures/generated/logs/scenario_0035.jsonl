@@ -1,0 +1,11 @@
+{"ts": "2025-05-04T00:00:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 98}
+{"ts": "2025-05-04T00:08:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 115}
+{"ts": "2025-05-04T00:18:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 339}
+{"ts": "2025-05-04T00:21:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 324}
+{"ts": "2025-05-04T00:25:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 362}
+{"ts": "2025-05-04T00:28:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 164}
+{"ts": "2025-05-04T00:33:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 325}
+{"ts": "2025-05-04T00:40:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 398}
+{"ts": "2025-05-04T00:45:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 201}
+{"ts": "2025-05-04T00:50:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 138}
+{"ts": "2025-05-04T00:55:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 296}

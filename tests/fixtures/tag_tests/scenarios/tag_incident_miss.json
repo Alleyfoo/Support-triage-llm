@@ -1,0 +1,51 @@
+{
+  "id": "tag_incident_miss",
+  "text": "Synthetic canary: outage at 12:00 UTC today (should be missed).",
+  "anchor_time": "2025-05-10T15:00:00Z",
+  "service": "api",
+  "tenant": "acme",
+  "case_type": "incident",
+  "severity": "high",
+  "time_expression": "clock_only",
+  "customer_time_window": {
+    "start": "2025-05-10T12:00:00Z",
+    "end": "2025-05-10T14:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-10T12:00:00Z",
+    "end": "2025-05-10T14:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-10T12:05:00Z",
+    "end": "2025-05-10T12:25:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_incident_miss.jsonl",
+  "log_pattern": "clean",
+  "notes": "tagged_canary",
+  "tags": {
+    "time_expr": "time_only",
+    "log_pattern": "clean",
+    "expected_issue": "incident_miss"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-10T12:00:00Z",
+      "end": "2025-05-10T14:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-10T12:00:00Z",
+      "end": "2025-05-10T14:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-10T12:05:00Z",
+      "end": "2025-05-10T12:25:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}

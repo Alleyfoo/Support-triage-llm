@@ -1,0 +1,14 @@
+{"ts": "2025-05-01T12:37:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 387}
+{"ts": "2025-05-01T12:47:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "health_check", "message": "Routine health check ok", "status_code": 200, "request_id": null, "latency_ms": 391}
+{"ts": "2025-05-01T12:57:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 333}
+{"ts": "2025-05-01T13:01:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 379}
+{"ts": "2025-05-01T13:03:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 106}
+{"ts": "2025-05-01T13:07:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 315}
+{"ts": "2025-05-01T13:11:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 295}
+{"ts": "2025-05-01T13:15:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 263}
+{"ts": "2025-05-01T13:18:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 309}
+{"ts": "2025-05-01T13:22:00Z", "tenant": "acme", "service": "api", "level": "ERROR", "event_type": "http_5xx", "message": "Upstream 503 from provider", "status_code": 503, "request_id": null, "latency_ms": 178}
+{"ts": "2025-05-01T13:28:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 275}
+{"ts": "2025-05-01T13:33:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 111}
+{"ts": "2025-05-01T13:38:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 292}
+{"ts": "2025-05-01T13:43:00Z", "tenant": "acme", "service": "api", "level": "INFO", "event_type": "recovered", "message": "Service recovered", "status_code": 200, "request_id": null, "latency_ms": 272}

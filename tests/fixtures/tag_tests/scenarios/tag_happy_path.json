@@ -1,0 +1,51 @@
+{
+  "id": "tag_happy_path",
+  "text": "Synthetic control: outage at 09:00 UTC today with clear logs.",
+  "anchor_time": "2025-05-12T12:00:00Z",
+  "service": "api",
+  "tenant": "umbrella",
+  "case_type": "incident",
+  "severity": "high",
+  "time_expression": "clock_only",
+  "customer_time_window": {
+    "start": "2025-05-12T09:00:00Z",
+    "end": "2025-05-12T11:00:00Z"
+  },
+  "expects_time_window": true,
+  "query_time_window": {
+    "start": "2025-05-12T09:00:00Z",
+    "end": "2025-05-12T11:00:00Z",
+    "source": "tag"
+  },
+  "incident_window": {
+    "start": "2025-05-12T09:05:00Z",
+    "end": "2025-05-12T09:25:00Z"
+  },
+  "observed_incident": true,
+  "log_path": "tag_happy_path.jsonl",
+  "log_pattern": "burst",
+  "notes": "tagged_canary",
+  "tags": {
+    "time_expr": "time_only",
+    "log_pattern": "burst",
+    "expected_issue": "none"
+  },
+  "truth": {
+    "customer_time_window": {
+      "start": "2025-05-12T09:00:00Z",
+      "end": "2025-05-12T11:00:00Z"
+    },
+    "query_time_window": {
+      "start": "2025-05-12T09:00:00Z",
+      "end": "2025-05-12T11:00:00Z",
+      "source": "tag"
+    },
+    "incident_window": {
+      "start": "2025-05-12T09:05:00Z",
+      "end": "2025-05-12T09:25:00Z"
+    },
+    "expects_customer_window": true,
+    "expects_incident": true,
+    "expects_high_confidence": true
+  }
+}
