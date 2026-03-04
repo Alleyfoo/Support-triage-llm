@@ -1,25 +1,25 @@
-from app import config
 from tools import triage_worker
 
 
-def test_tool_select_mode_llm_falls_back_rules(monkeypatch):
-    monkeypatch.setattr(config, "TOOL_SELECT_MODE", "llm")
+def test_tool_select_falls_back_to_rules_for_email_delivery():
     triage_result = {
         "case_type": "email_delivery",
         "scope": {"recipient_domains": ["example.com"]},
     }
     tools = triage_worker._select_tools(triage_result)
-    assert any(t["name"] == "fetch_email_events_sample" for t in tools)
+    names = {t["name"] for t in tools}
+    assert "fetch_email_events_sample" in names
+    assert "dns_email_auth_check_sample" in names
 
 
-def test_tool_selection_llm_respects_suggestions(monkeypatch):
-    monkeypatch.setattr(config, "TOOL_SELECT_MODE", "llm")
+def test_tool_selection_ignores_llm_suggested_tools():
     triage_result = {
         "case_type": "integration",
         "scope": {"recipient_domains": []},
         "suggested_tools": [
-            {"tool_name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}}
+            {"tool_name": "fetch_email_events_sample", "params": {"recipient_domain": "attacker.com"}}
         ],
     }
     tools = triage_worker._select_tools(triage_result)
-    assert tools[0]["name"] == "fetch_integration_events_sample"
+    names = [t["name"] for t in tools]
+    assert names == ["fetch_integration_events_sample"]

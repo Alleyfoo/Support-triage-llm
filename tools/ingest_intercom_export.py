@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from app import queue_db
+from app.sanitize import sanitize_ingress_text
 
 
 def parse_export(path: Path) -> List[Dict[str, str]]:
@@ -38,10 +39,11 @@ def parse_export(path: Path) -> List[Dict[str, str]]:
 def enqueue(messages: List[Dict[str, str]]) -> int:
     count = 0
     for msg in messages:
+        sanitized_text, _ = sanitize_ingress_text(msg.get("text", ""))
         _, created = queue_db.insert_message(
             {
                 "conversation_id": msg.get("conversation_id") or "intercom",
-                "text": msg.get("text", ""),
+                "text": sanitized_text,
                 "end_user_handle": msg.get("end_user_handle") or "",
                 "channel": msg.get("channel") or "intercom",
                 "raw_payload": msg.get("raw_payload") or "",

@@ -230,18 +230,8 @@ def _build_missing_questions(domains: List[str], reported_time_window: Dict[str,
 
 
 def _suggest_tools(domains: List[str]) -> List[Dict[str, Any]]:
-    tools: List[Dict[str, Any]] = []
-    if domains:
-        tools.append(
-            {"tool_name": "fetch_email_events", "reason": "Confirm bounce or delivery patterns", "params": {"recipient_domain": domains[0]}}
-        )
-        tools.append(
-            {"tool_name": "dns_email_auth_check", "reason": "Check SPF/DKIM/DMARC presence", "params": {"domain": domains[0]}}
-        )
-    else:
-        tools.append({"tool_name": "fetch_email_events", "reason": "Confirm bounce or delivery patterns", "params": {}})
-    return tools
-
+    """Schema-compatibility stub: tool selection is deterministic in triage_worker."""
+    return []
 
 def _build_draft_reply(domains: List[str], severity: str) -> Dict[str, str]:
     domain_note = f" to {domains[0]}" if domains else ""
@@ -405,6 +395,7 @@ def _extract_json_block(text: str) -> Dict[str, Any]:
 
 def _triage_heuristic(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     triage_payload = _base_triage_payload(text, metadata)
+    triage_payload["suggested_tools"] = []
 
     def _fix(payload: Dict[str, Any]) -> Dict[str, Any]:
         payload.setdefault("examples", [])
@@ -447,25 +438,10 @@ def _format_examples(examples: List[Dict[str, Any]]) -> str:
     return "You are a support triage assistant. Use the following examples for reference:\n" + "\n\n".join(blocks) + "\n\n"
 
 
-def _format_tools() -> str:
-    entries = []
-    for name, tool in REGISTRY.items():
-        doc = (tool.__doc__ or "").strip().splitlines()[0] if hasattr(tool, "__doc__") else ""
-        entries.append(f"- {name}: {doc}")
-    if not entries:
-        return ""
-    return (
-        "You have access to the following tools to gather evidence. "
-        "Suggest the most relevant ones in the 'suggested_tools' JSON field:\n"
-        + "\n".join(entries)
-        + "\n\n"
-    )
-
-
 def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     store = get_vector_store()
     fewshot = store.retrieve(text, k=config.FEW_SHOT_EXAMPLES)
-    prompt_prefix = _format_examples(fewshot) + _format_tools()
+    prompt_prefix = _format_examples(fewshot)
 
     prompt_base = (
         prompt_prefix
@@ -480,6 +456,7 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
     for attempt in range(2):
         attempts = attempt + 1
         prompt = prompt_base
+        raw = ""
         if last_error:
             prompt += f"\nPrevious attempt failed schema validation: {last_error}\nReturn ONLY valid JSON."
         try:
@@ -488,6 +465,7 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
             for key in list(parsed.keys()):
                 if key not in ALLOWED_TOP_KEYS:
                     parsed.pop(key, None)
+            parsed["suggested_tools"] = []
 
             def _fix(payload: Dict[str, Any]) -> Dict[str, Any]:
                 payload.setdefault("examples", [])
@@ -521,7 +499,8 @@ def _triage_llm(text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
             }
             return parsed
         except (SchemaValidationError, json.JSONDecodeError) as exc:
-            last_error = str(exc)
+            raw_prefix = raw[:100] if isinstance(raw, str) else ""
+            last_error = f"{exc}; raw_prefix={raw_prefix!r}"
             continue
         except (HTTPError, URLError, TimeoutError, OSError) as exc:
             raise RuntimeError(f"LLM call failed: {exc}") from exc

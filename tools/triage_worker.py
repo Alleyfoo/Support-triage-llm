@@ -177,53 +177,50 @@ def _customer_time_window(triage_result: Dict[str, Any], meta: Dict[str, Any]) -
 
 
 def _select_tools(triage_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Deterministically select tools from case classification; never trust LLM suggestions."""
     allowed = _allowed_tools(triage_result)
-    suggested: List[Dict[str, Any]] = []
-    for suggestion in triage_result.get("suggested_tools") or []:
-        name = suggestion.get("tool_name")
-        params = suggestion.get("params") if isinstance(suggestion, dict) else {}
-        if name in registry.REGISTRY and (not allowed or name in allowed):
-            suggested.append({"name": name, "params": params})
-
-    if _should_run_log_tool(triage_result) and ("log_evidence" in allowed or not allowed):
-        existing = {tool["name"] for tool in suggested}
-        if "log_evidence" not in existing:
-            lower_symptoms = " ".join([str(s) for s in triage_result.get("symptoms") or []]).lower()
-            draft_body = (triage_result.get("draft_customer_reply") or {}).get("body", "").lower()
-            haystack = f"{lower_symptoms} {draft_body}"
-            if "timeout" in haystack:
-                query_type = "timeouts"
-            elif any(k in haystack for k in ["down", "unavailable", "outage"]):
-                query_type = "availability"
-            else:
-                query_type = "errors"
-            suggested.append(
-                {
-                    "name": "log_evidence",
-                    "params": {
-                        "service": "api",
-                        "query_type": query_type,
-                    },
-                }
-            )
-
-    if suggested:
-        return suggested
-
-    # Fallback: legacy heuristic mapping to avoid zero-evidence runs.
     case_type = triage_result.get("case_type", "")
     recipient_domains = triage_result.get("scope", {}).get("recipient_domains") or []
     primary_domain = recipient_domains[0] if recipient_domains else None
-    fallback: List[Dict[str, Any]] = []
-    if case_type == "email_delivery" and ("fetch_email_events_sample" in allowed or not allowed):
-        fallback.append({"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}})
-        if primary_domain and ("dns_email_auth_check_sample" in allowed or not allowed):
-            fallback.append({"name": "dns_email_auth_check_sample", "params": {"domain": primary_domain}})
-    elif case_type == "integration" and (not allowed or "fetch_integration_events_sample" in allowed):
-        fallback.append({"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}})
-    elif case_type in {"ui_bug", "auth_access"} and (not allowed or "fetch_app_events_sample" in allowed):
-        fallback.append({"name": "fetch_app_events_sample", "params": {}})
-    return fallback
+
+    tool_map: Dict[str, List[Dict[str, Any]]] = {
+        "email_delivery": [
+            {"name": "fetch_email_events_sample", "params": {"recipient_domain": primary_domain}},
+            {"name": "dns_email_auth_check_sample", "params": {"domain": primary_domain}},
+        ],
+        "integration": [{"name": "fetch_integration_events_sample", "params": {"integration_name": "ats"}}],
+        "auth_access": [{"name": "fetch_app_events_sample", "params": {}}],
+        "ui_bug": [{"name": "fetch_app_events_sample", "params": {}}],
+        "incident": [{"name": "service_status", "params": {}}],
+    }
+
+    selected: List[Dict[str, Any]] = []
+    for item in tool_map.get(case_type, []):
+        name = item["name"]
+        if name in registry.REGISTRY and (not allowed or name in allowed):
+            params = {k: v for k, v in (item.get("params") or {}).items() if v is not None}
+            selected.append({"name": name, "params": params})
+
+    if _should_run_log_tool(triage_result) and ("log_evidence" in allowed):
+        lower_symptoms = " ".join([str(sym) for sym in triage_result.get("symptoms") or []]).lower()
+        draft_body = (triage_result.get("draft_customer_reply") or {}).get("body", "").lower()
+        haystack = f"{lower_symptoms} {draft_body}"
+        if "timeout" in haystack:
+            query_type = "timeouts"
+        elif any(k in haystack for k in ["down", "unavailable", "outage"]):
+            query_type = "availability"
+        else:
+            query_type = "errors"
+        selected.append({"name": "log_evidence", "params": {"service": "api", "query_type": query_type}})
+
+    deduped: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for tool in selected:
+        if tool["name"] in seen:
+            continue
+        seen.add(tool["name"])
+        deduped.append(tool)
+    return deduped
 
 
 def _count_summary(field: str, bundles: List[Dict[str, Any]]) -> int:
@@ -459,7 +456,7 @@ def process_once(processor_id: str) -> bool:
             except Exception as exc:
                 evidence_sources_run.append(f"{tool['name']}:error:{exc}")
 
-        if "service_status" in allowed_tools or not allowed_tools:
+        if "service_status" in allowed_tools:
             for service_id in service_ids:
                 try:
                     params = {"service_id": service_id, "tenant_id": tenant_id, "region": resolved.get("default_region")}
@@ -500,7 +497,7 @@ def process_once(processor_id: str) -> bool:
             "symptoms": triage_result.get("symptoms") or [],
             "service_ids": service_ids,
             "time_window": query_tw,
-            "evidence_refs": [ref for ref in evidence_refs if ref.get("tool") in allowed_tools or not allowed_tools],
+            "evidence_refs": [ref for ref in evidence_refs if ref.get("tool") in allowed_tools],
             "recommended_next_steps": [
                 "Replay log_evidence with same params",
                 "Replay service_status checks for entitled services",
@@ -548,6 +545,13 @@ def process_once(processor_id: str) -> bool:
         metrics.timing("triage_latency_s", elapsed)
     except SchemaValidationError as exc:
         elapsed = time.perf_counter() - start
+        max_retry_value = max(retry_count + 1, config.MAX_RETRIES + 1)
+        response_meta = {
+            "error": str(exc),
+            "dead_letter_reason": "schema_validation",
+            "validation_error": str(exc),
+            "raw_llm_output_prefix": str(exc)[:100],
+        }
         queue_db.update_row_status(
             row["id"],
             status="dead_letter",
@@ -555,10 +559,22 @@ def process_once(processor_id: str) -> bool:
             started_at=started_at,
             finished_at=_now_iso(),
             latency_seconds=elapsed,
-            retry_count=retry_count + 1,
-            response_metadata={"error": str(exc), "dead_letter_reason": "schema_validation"},
+            retry_count=max_retry_value,
+            response_metadata=response_meta,
         )
-        print(f"Schema validation failed for case={row.get('case_id') or row['id']}: {exc}")
+        print(
+            "Schema validation security event:",
+            json.dumps(
+                {
+                    "ts": _now_iso(),
+                    "queue_id": row.get("id"),
+                    "case_id": row.get("case_id"),
+                    "validation_error": str(exc),
+                    "raw_llm_output_prefix": str(exc)[:100],
+                },
+                ensure_ascii=False,
+            ),
+        )
         metrics.incr("triage_failed_schema")
         metrics.incr("triage_dead_letter")
     except Exception as exc:  # pragma: no cover - defensive

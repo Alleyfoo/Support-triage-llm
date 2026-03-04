@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Security, Request
 from fastapi.security import APIKeyHeader
 
 from . import config, queue_db
+from .sanitize import sanitize_ingress_text
 from .features import pipeline_enabled, require_pipeline_enabled
 from .schemas import ChatEnqueueRequest, EmailRequest, EmailResponse, TriageRequest
 from .triage_service import triage
@@ -102,9 +103,12 @@ def reply(req: EmailRequest) -> EmailResponse:
 
 @app.post("/chat/enqueue", dependencies=[Depends(_get_api_key)])
 def enqueue_chat(payload: ChatEnqueueRequest) -> Dict[str, int]:
+    clean_text, flags = sanitize_ingress_text((payload.text or "").strip())
+    if flags.get("had_invisible"):
+        print(f"[enqueue_chat] sanitized invisible chars for conversation={payload.conversation_id or 'api-web'}")
     message = {
         "conversation_id": payload.conversation_id or "api-web",
-        "text": (payload.text or "").strip(),
+        "text": clean_text,
         "end_user_handle": payload.end_user_handle or "api-user",
         "channel": payload.channel or "web_chat",
         "message_id": payload.message_id or "",
@@ -132,9 +136,12 @@ def triage_run(req: TriageRequest) -> Dict[str, object]:
 
 @app.post("/triage/enqueue", dependencies=[Depends(_get_api_key)])
 def triage_enqueue(req: TriageRequest) -> Dict[str, int]:
+    clean_text, flags = sanitize_ingress_text(req.text)
+    if flags.get("had_invisible"):
+        print(f"[triage_enqueue] sanitized invisible chars for source={req.source or 'triage'}")
     message = {
         "conversation_id": req.source or "triage",
-        "text": req.text,
+        "text": clean_text,
         "end_user_handle": req.tenant or "",
         "channel": "triage",
         "message_id": "",
@@ -278,3 +285,10 @@ def export_intake(intake_id: str, mode: str = "external", api_key: str = Depends
         "handoffs": handoffs,
     }
     return payload
+
+
+@app.post("/queue/{row_id}/learning-eligibility", dependencies=[Depends(_get_api_key)])
+def set_queue_learning_eligibility(row_id: int, payload: Dict[str, Any], api_key: str = Depends(_get_api_key)) -> Dict[str, Any]:
+    eligible = bool(payload.get("learning_eligible", False))
+    queue_db.set_learning_eligible(row_id, eligible)
+    return {"status": "ok", "row_id": row_id, "learning_eligible": 1 if eligible else 0}

@@ -190,6 +190,7 @@ error_tag_options = [
     "hallucinated_claim",
 ]
 error_tags = st.multiselect("Error tags (optional)", error_tag_options)
+learning_eligible = st.checkbox("Mark as training example (learning eligible)", value=bool(row.get("learning_eligible") or False))
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -210,6 +211,7 @@ with col1:
             error_tags=error_tags,
             draft_customer_reply_subject=final_subject,
             draft_customer_reply_body=final_body,
+            learning_eligible=1 if learning_eligible else 0,
         )
         export_path = _export_case(row, triage_json, subject, body, "approved")
         st.success(f"Case marked approved. Exported to {export_path}")

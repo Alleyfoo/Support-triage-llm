@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from app import queue_db
+from app.sanitize import sanitize_ingress_text
 
 
 def parse_eml(path: Path) -> Dict[str, str]:
@@ -17,17 +18,31 @@ def parse_eml(path: Path) -> Dict[str, str]:
         msg = BytesParser(policy=policy.default).parse(f)
     subject = msg.get("subject", "")
     sender = msg.get("from", "")
+
     body = ""
+    html_body = ""
     if msg.is_multipart():
         for part in msg.walk():
-            if part.get_content_type() == "text/plain":
+            ctype = part.get_content_type()
+            if ctype == "text/plain" and not body:
                 body = part.get_content()
-                break
+            elif ctype == "text/html" and not html_body:
+                html_body = part.get_content()
     else:
-        body = msg.get_content()
+        ctype = msg.get_content_type()
+        if ctype == "text/html":
+            html_body = msg.get_content()
+        else:
+            body = msg.get_content()
+
+    source_text = body or html_body
+    cleaned_text, flags = sanitize_ingress_text(source_text, is_html=bool(html_body and not body))
+    if flags.get("had_invisible") or flags.get("had_hidden_html"):
+        print(f"[ingest_eml] sanitized {path.name}: {flags}")
+
     return {
         "conversation_id": path.stem,
-        "text": f"{subject}\n{body}".strip(),
+        "text": f"{subject}\n{cleaned_text}".strip(),
         "end_user_handle": sender,
         "channel": "email",
         "ingest_signature": "eml-import",
