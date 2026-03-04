@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from app import queue_db
+from app.sanitize import sanitize_ingress_text
 
 
 def _decode_header(value: Optional[str]) -> str:
@@ -38,23 +39,34 @@ def _decode_header(value: Optional[str]) -> str:
         return value
 
 
-def _extract_body(msg: Message) -> str:
+def _extract_body(msg: Message) -> tuple[str, bool]:
+    html_body = ""
     if msg.is_multipart():
         for part in msg.walk():
             disp = (part.get("Content-Disposition") or "").lower()
             if "attachment" in disp:
                 continue
-            if part.get_content_type() == "text/plain":
+            ctype = part.get_content_type()
+            if ctype == "text/plain":
                 try:
                     payload = part.get_payload(decode=True) or b""
-                    return payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                    return payload.decode(part.get_content_charset() or "utf-8", errors="replace"), False
                 except Exception:
                     continue
+            if ctype == "text/html" and not html_body:
+                try:
+                    payload = part.get_payload(decode=True) or b""
+                    html_body = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                except Exception:
+                    continue
+        if html_body:
+            return html_body, True
     payload = msg.get_payload(decode=True) or b""
     try:
-        return payload.decode(msg.get_content_charset() or "utf-8", errors="replace")
+        decoded = payload.decode(msg.get_content_charset() or "utf-8", errors="replace")
     except Exception:
-        return payload.decode(errors="replace")
+        decoded = payload.decode(errors="replace")
+    return decoded, (msg.get_content_type() == "text/html")
 
 
 def _imap_connect() -> imaplib.IMAP4_SSL:
@@ -102,7 +114,10 @@ def _parse_message(raw_bytes: bytes, uid: str, uidvalidity: Optional[str], folde
     subject = _decode_header(msg.get("Subject"))
     sender = _decode_header(msg.get("From"))
     message_id = (msg.get("Message-ID") or "").strip()
-    body = _extract_body(msg)
+    body, is_html = _extract_body(msg)
+    body, flags = sanitize_ingress_text(body, is_html=is_html)
+    if flags.get("had_invisible") or flags.get("had_hidden_html"):
+        print(f"[imap_ingest] sanitized uid={uid}: {flags}")
     raw_payload = raw_bytes.decode(errors="replace")
     references = msg.get_all("References", [])
     in_reply_to = msg.get("In-Reply-To", "")

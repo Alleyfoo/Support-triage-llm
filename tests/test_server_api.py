@@ -32,3 +32,32 @@ def test_chat_enqueue_rejects_empty(monkeypatch):
     resp = server.enqueue_chat(req)
     assert resp["enqueued"] == 0
     assert resp["queue_id"] is None
+
+
+def test_chat_enqueue_sanitizes_invisible_chars(tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "USE_DB_QUEUE", True)
+    monkeypatch.setattr(queue_db, "DB_PATH", tmp_path / "queue.db")
+    queue_db.init_db()
+
+    req = ChatEnqueueRequest(conversation_id="test-conv", text="hello\u200bworld", end_user_handle="tmp-user", channel="web_chat")
+    response = server.enqueue_chat(req)
+    assert response["enqueued"] == 1
+
+    rows = queue_db.fetch_queue()
+    assert rows[0]["payload"] == "helloworld"
+
+
+def test_set_learning_eligibility_endpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(server, "USE_DB_QUEUE", True)
+    monkeypatch.setattr(queue_db, "DB_PATH", tmp_path / "queue.db")
+    queue_db.init_db()
+
+    req = ChatEnqueueRequest(conversation_id="learn-conv", text="hello", end_user_handle="tmp-user", channel="web_chat")
+    resp = server.enqueue_chat(req)
+    row_id = resp["queue_id"]
+
+    out = server.set_queue_learning_eligibility(row_id, {"learning_eligible": True}, api_key="")
+    assert out["learning_eligible"] == 1
+
+    rows = queue_db.fetch_queue()
+    assert rows[0]["learning_eligible"] == 1

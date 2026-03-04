@@ -56,6 +56,7 @@ def _fetch_closed(limit: int) -> List[Dict[str, Any]]:
             """
             SELECT * FROM queue
             WHERE closed_loop_at IS NOT NULL
+              AND learning_eligible = 1
             ORDER BY closed_loop_at DESC
             LIMIT ?
             """,

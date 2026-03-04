@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS queue (
     edit_distance REAL,
     feedback_source TEXT,
     closed_loop_at TEXT,
+    learning_eligible INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -222,6 +223,7 @@ ALLOWED_UPDATE_FIELDS = {
     "edit_distance",
     "feedback_source",
     "closed_loop_at",
+    "learning_eligible",
     "draft_synced_at",
     "draft_message_id",
     "created_at",
@@ -318,6 +320,7 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "edit_distance": "REAL",
         "feedback_source": "TEXT",
         "closed_loop_at": "TEXT",
+        "learning_eligible": "INTEGER NOT NULL DEFAULT 0",
         "draft_synced_at": "TEXT",
         "draft_message_id": "TEXT",
     }
@@ -571,6 +574,16 @@ def update_row_status(row_id: int, status: str, **kwargs: Any) -> None:
     conn = get_connection()
     try:
         conn.execute(f"UPDATE queue SET {assignments} WHERE id = ?", params)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def set_learning_eligible(row_id: int, eligible: bool) -> None:
+    """Mark whether a queue row is eligible for learning dataset curation."""
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE queue SET learning_eligible = ? WHERE id = ?", (1 if eligible else 0, int(row_id)))
         conn.commit()
     finally:
         conn.close()

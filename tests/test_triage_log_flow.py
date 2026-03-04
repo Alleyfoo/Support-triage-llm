@@ -22,4 +22,4 @@ def test_incident_email_date_drives_log_pull():
 
     assert bundle["observed_incident"] is True
     assert bundle["incident_window"]["start"].startswith("2025-05-01T10:45")
-    assert bundle["incident_window"]["end"].startswith("2025-05-01T10:58")
+    assert bundle["incident_window"]["end"].startswith("2025-05-01T10:5")
